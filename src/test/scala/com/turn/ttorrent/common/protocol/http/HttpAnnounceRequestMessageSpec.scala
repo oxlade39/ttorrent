@@ -7,6 +7,6 @@ class HttpAnnounceRequestMessageSpec extends Specification {
   "HTTPAnnounceRequestMessage" should {
     "parse ByteBuffer into message" in {
       failure
-    }
+    }.isPending
   }
 }
