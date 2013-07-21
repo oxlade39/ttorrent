@@ -16,6 +16,15 @@ class BEncoderSpec extends Specification {
       bencoded mustEqual "i49e"
     }
 
+    "encode strings as bytes arrays" in {
+      val out: ByteArrayOutputStream = new ByteArrayOutputStream()
+      BEncoder.bencode("spam".asInstanceOf[Any], out)
+
+      val bencoded = new String(out.toByteArray, "UTF-8")
+
+      bencoded mustEqual "4:spam"
+    }
+
     "encode negative integers" in {
       val out: ByteArrayOutputStream = new ByteArrayOutputStream()
       BEncoder.bencode(-49, out)
@@ -30,7 +39,7 @@ class BEncoderSpec extends Specification {
       val list: util.ArrayList[BEValue] = new util.ArrayList[BEValue]()
       list.add(new BEValue("spam"))
       list.add(new BEValue(42))
-      BEncoder.bencode(list, out)
+      BEncoder.bencode(list.asInstanceOf[Any], out)
 
       val bencoded = new String(out.toByteArray, "UTF-8")
 
