@@ -13,6 +13,11 @@
 /.project
 /.settings
 
+# Ignore intellij files
+*.iml
+*.ipr
+.idea
+
 # Ignore common editor swap files
 *.swp
 *.bak
