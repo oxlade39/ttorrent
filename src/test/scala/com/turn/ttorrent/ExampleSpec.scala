@@ -9,6 +9,8 @@ import java.io.File
  * @author dan
  */
 class ExampleSpec extends Specification {
+  skipAll
+
   "Client" should {
     "download torrents" in {
       // First, instantiate the Client object.
