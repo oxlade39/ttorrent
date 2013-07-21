@@ -32,5 +32,3 @@ libraryDependencies <+= scalaVersion {
   case "2.9.2" => "org.specs2" %% "specs2" % "1.12.3" % "test"
   case _ => "org.specs2" %% "specs2" % "1.14" % "test"
 }
-
-testOptions in Test += Tests.Argument(TestFrameworks.Specs2, "console", "html")
