@@ -3,6 +3,7 @@ package com.turn.ttorrent.bcodec
 import org.specs2.mutable.Specification
 import java.io.ByteArrayOutputStream
 import java.util
+import java.nio.ByteBuffer
 
 class BEncoderSpec extends Specification {
   "BEncoder" should {
@@ -27,8 +28,8 @@ class BEncoderSpec extends Specification {
     "encode lists" in {
       val out: ByteArrayOutputStream = new ByteArrayOutputStream()
       val list: util.ArrayList[BEValue] = new util.ArrayList[BEValue]()
-      list.add(new BEValue(42))
       list.add(new BEValue("spam"))
+      list.add(new BEValue(42))
       BEncoder.bencode(list, out)
 
       val bencoded = new String(out.toByteArray, "UTF-8")
@@ -37,14 +38,13 @@ class BEncoderSpec extends Specification {
     }
 
     "encode dictionaries" in {
-      val out: ByteArrayOutputStream = new ByteArrayOutputStream()
 
       val dic = new util.LinkedHashMap[String, BEValue]()
       dic.put("foo", new BEValue(42))
       dic.put("bar", new BEValue("spam"))
-      BEncoder.bencode(dic, out)
+      val output: ByteBuffer = BEncoder.bencode(dic)
 
-      val bencoded = new String(out.toByteArray, "UTF-8")
+      val bencoded = new String(output.array(), "UTF-8")
 
       bencoded mustEqual "d3:bar4:spam3:fooi42ee"
     }
