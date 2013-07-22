@@ -87,7 +87,7 @@ class HttpAnnounceRequestMessageSpec extends Specification {
         "compact=%s&" +
         "no_peer_id=%s&" +
         "ip=%s").format("hash", "42", 8080, "27", "28", "100", 0, 0, "127.0.0.1")
-    }.pendingUntilFixed("uploaded and download are back to front")
+    }
 
   }
 }
