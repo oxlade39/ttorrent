@@ -266,8 +266,7 @@ public class HTTPAnnounceRequestMessage extends HTTPTrackerMessage
 		byte[] peerId, int port, long uploaded, long downloaded, long left,
 		boolean compact, boolean noPeerId, RequestEvent event,
 		String ip, int numWant)
-		throws IOException, MessageValidationException,
-			UnsupportedEncodingException {
+		throws IOException, MessageValidationException {
 		Map<String, BEValue> params = new HashMap<String, BEValue>();
 		params.put("info_hash", new BEValue(infoHash));
 		params.put("peer_id", new BEValue(peerId));
