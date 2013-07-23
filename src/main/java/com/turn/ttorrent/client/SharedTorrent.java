@@ -16,35 +16,26 @@
 package com.turn.ttorrent.client;
 
 import com.turn.ttorrent.bcodec.InvalidBEncodingException;
-import com.turn.ttorrent.common.Torrent;
 import com.turn.ttorrent.client.peer.PeerActivityListener;
 import com.turn.ttorrent.client.peer.SharingPeer;
-import com.turn.ttorrent.client.storage.TorrentByteStorage;
-import com.turn.ttorrent.client.storage.FileStorage;
 import com.turn.ttorrent.client.storage.FileCollectionStorage;
+import com.turn.ttorrent.client.storage.FileStorage;
+import com.turn.ttorrent.client.storage.TorrentByteStorage;
+import com.turn.ttorrent.common.Torrent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 /**
@@ -117,7 +108,7 @@ public class SharedTorrent extends Torrent implements PeerActivityListener {
 	 * @throws NoSuchAlgorithmException
 	 */
 	public SharedTorrent(Torrent torrent, File destDir)
-		throws FileNotFoundException, IOException, NoSuchAlgorithmException {
+		throws IOException, NoSuchAlgorithmException {
 		this(torrent, destDir, false);
 	}
 
@@ -140,7 +131,7 @@ public class SharedTorrent extends Torrent implements PeerActivityListener {
 	 * @throws NoSuchAlgorithmException
 	 */
 	public SharedTorrent(Torrent torrent, File destDir, boolean seeder)
-		throws FileNotFoundException, IOException, NoSuchAlgorithmException {
+		throws IOException, NoSuchAlgorithmException {
 		this(torrent.getEncoded(), destDir, seeder);
 	}
 
@@ -155,7 +146,7 @@ public class SharedTorrent extends Torrent implements PeerActivityListener {
 	 * @throws IOException If the torrent file cannot be read or decoded.
 	 */
 	public SharedTorrent(byte[] torrent, File destDir)
-		throws FileNotFoundException, IOException, NoSuchAlgorithmException {
+		throws IOException, NoSuchAlgorithmException {
 		this(torrent, destDir, false);
 	}
 
@@ -174,7 +165,7 @@ public class SharedTorrent extends Torrent implements PeerActivityListener {
 	 * invalid.
 	 */
 	public SharedTorrent(byte[] torrent, File parent, boolean seeder)
-		throws FileNotFoundException, IOException, NoSuchAlgorithmException {
+		throws IOException, NoSuchAlgorithmException {
 		super(torrent, seeder);
 
 		if (parent == null || !parent.isDirectory()) {

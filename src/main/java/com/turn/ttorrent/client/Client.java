@@ -18,46 +18,30 @@ package com.turn.ttorrent.client;
 import com.turn.ttorrent.client.announce.Announce;
 import com.turn.ttorrent.client.announce.AnnounceException;
 import com.turn.ttorrent.client.announce.AnnounceResponseListener;
+import com.turn.ttorrent.client.announce.TrackerClientFactory;
 import com.turn.ttorrent.client.peer.PeerActivityListener;
+import com.turn.ttorrent.client.peer.SharingPeer;
 import com.turn.ttorrent.common.Peer;
 import com.turn.ttorrent.common.Torrent;
 import com.turn.ttorrent.common.protocol.PeerMessage;
 import com.turn.ttorrent.common.protocol.TrackerMessage;
-import com.turn.ttorrent.client.peer.SharingPeer;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
-import java.nio.channels.UnsupportedAddressTypeException;
-import java.util.BitSet;
-import java.util.Comparator;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Observable;
-import java.util.Random;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.TreeSet;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
 import jargs.gnu.CmdLineParser;
-
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.PatternLayout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.net.*;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
+import java.nio.channels.UnsupportedAddressTypeException;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * A pure-java BitTorrent client.
@@ -135,7 +119,7 @@ public class Client extends Observable implements Runnable,
 	 * @param torrent The torrent to download and share.
 	 */
 	public Client(InetAddress address, SharedTorrent torrent)
-		throws UnknownHostException, IOException {
+		throws IOException {
 		this.torrent = torrent;
 		this.state = ClientState.WAITING;
 
@@ -155,7 +139,7 @@ public class Client extends Observable implements Runnable,
 
 		// Initialize the announce request thread, and register ourselves to it
 		// as well.
-		this.announce = new Announce(this.torrent, this.self);
+		this.announce = new Announce(this.torrent, this.self, new TrackerClientFactory());
 		this.announce.register(this);
 
 		logger.info("BitTorrent client [{}] for {} started and " +

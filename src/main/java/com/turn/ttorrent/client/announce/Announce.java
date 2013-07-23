@@ -17,19 +17,12 @@ package com.turn.ttorrent.client.announce;
 
 import com.turn.ttorrent.client.SharedTorrent;
 import com.turn.ttorrent.common.Peer;
-import com.turn.ttorrent.common.protocol.TrackerMessage.*;
-
-import java.net.URI;
-import java.net.UnknownHostException;
-import java.net.UnknownServiceException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
+import com.turn.ttorrent.common.protocol.TrackerMessage.AnnounceRequestMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.URI;
+import java.util.*;
 
 /**
  * BitTorrent announce sub-system.
@@ -58,8 +51,9 @@ public class Announce implements Runnable {
 	 * torrent. */
 	private final List<List<TrackerClient>> clients;
 	private final Set<TrackerClient> allClients;
+    private final TrackerClientFactory trackerClientFactory;
 
-	/** Announce thread and control. */
+    /** Announce thread and control. */
 	private Thread thread;
 	private boolean stop;
 	private boolean forceStop;
@@ -75,11 +69,12 @@ public class Announce implements Runnable {
 	 *
 	 * @param torrent The torrent we're announcing about.
 	 * @param peer Our peer specification.
-	 * @param type A string representing the announce type (used in the thread
+	 * @param trackerClientFactory factory for creating TrackerClient instances
 	 * name).
 	 */
-	public Announce(SharedTorrent torrent, Peer peer) {
+	public Announce(SharedTorrent torrent, Peer peer, TrackerClientFactory trackerClientFactory) {
 		this.peer = peer;
+        this.trackerClientFactory = trackerClientFactory;
 		this.clients = new ArrayList<List<TrackerClient>>();
 		this.allClients = new HashSet<TrackerClient>();
 
@@ -91,8 +86,7 @@ public class Announce implements Runnable {
 			ArrayList<TrackerClient> tierClients = new ArrayList<TrackerClient>();
 			for (URI tracker : tier) {
 				try {
-					TrackerClient client = this.createTrackerClient(torrent,
-						peer, tracker);
+					TrackerClient client = this.trackerClientFactory.createTrackerClient(torrent, peer, tracker);
 
 					tierClients.add(client);
 					this.allClients.add(client);
@@ -261,30 +255,7 @@ public class Announce implements Runnable {
 		}
 	}
 
-	/**
-	 * Create a {@link TrackerClient} annoucing to the given tracker address.
-	 *
-	 * @param torrent The torrent the tracker client will be announcing for.
-	 * @param peer The peer the tracker client will announce on behalf of.
-	 * @param tracker The tracker address as a {@link URI}.
-	 * @throws UnknownHostException If the tracker address is invalid.
-	 * @throws UnknownServiceException If the tracker protocol is not supported.
-	 */
-	private TrackerClient createTrackerClient(SharedTorrent torrent, Peer peer,
-		URI tracker) throws UnknownHostException, UnknownServiceException {
-		String scheme = tracker.getScheme();
-
-		if ("http".equals(scheme) || "https".equals(scheme)) {
-			return new HTTPTrackerClient(torrent, peer, tracker);
-		} else if ("udp".equals(scheme)) {
-			return new UDPTrackerClient(torrent, peer, tracker);
-		}
-
-		throw new UnknownServiceException(
-			"Unsupported announce scheme: " + scheme + "!");
-	}
-
-	/**
+    /**
 	 * Returns the current tracker client used for announces.
 	 * @throws AnnounceException 
 	 */
@@ -380,4 +351,5 @@ public class Announce implements Runnable {
 		this.forceStop = hard;
 		this.stop();
 	}
+
 }
