@@ -18,7 +18,7 @@ sealed trait Message {
     payload.map(p => p).getOrElse(ByteString.empty)
 
   lazy val encode: ByteString =
-    ByteString(ByteBuffer.allocate(3)) ++ ByteString(length.toByte) ++
+    ByteString(ByteBuffer.allocate(4).putInt(length).array()) ++
     messageIdBytes ++ payloadBytes
 }
 
@@ -75,10 +75,29 @@ case class Have(pieceIndex: Int) extends Message {
  * <p>A bitfield of the wrong length is considered an error. Clients should drop the connection if they receive
  * bitfields that are not of the correct size, or if the bitfield has any of the spare bits set.</p>
  */
-case class Bitfield(bitfield: ByteString) extends Message {
-  val payload = Some(bitfield)
-  val length = 1 + payload.size
+case class Bitfield(bitfield: Seq[Boolean]) extends Message {
   val messageId = Some(5)
+  lazy val length = 1 + Math.ceil(bitfield.size.toDouble / 8).toInt
+
+  lazy val payload: Option[ByteString] = {
+    val str = bitfield.grouped(8).foldLeft(ByteString()){(accum, byte: Seq[Boolean]) =>
+      val toAdd = byte.zipWithIndex.foldLeft(0.toByte)((byte, bit) =>
+        if (bit._1)
+          (byte | BitOps.bitMasks(bit._2)).toByte
+        else
+          (byte & ~BitOps.bitMasks(bit._2)).toByte
+      )
+
+      accum ++ ByteString(toAdd)
+    }
+    Some(str)
+  }
+
+  def set(index: Int) = copy(bitfield.updated(index, true))
+}
+
+object BitOps {
+  lazy val bitMasks: Seq[Int] = 0.to(7).reverse.map(i => 1 << i)
 }
 
 case class Request(index: Int, begin: Int, requestLength: Int) extends Message {

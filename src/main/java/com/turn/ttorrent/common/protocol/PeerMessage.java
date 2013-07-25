@@ -430,9 +430,9 @@ public abstract class PeerMessage {
 		public static BitfieldMessage craft(BitSet availablePieces) {
 			byte[] bitfield = new byte[
 				(int) Math.ceil((double)availablePieces.length()/8)];
-			for (int i=availablePieces.nextSetBit(0); i >= 0;
-					i=availablePieces.nextSetBit(i+1)) {
-				bitfield[i/8] |= 1 << (7 -(i % 8));
+			for (int i=availablePieces.nextSetBit(0); i >= 0; i=availablePieces.nextSetBit(i+1)) {
+                int bitIndex = 7 - (i % 8);
+                bitfield[i/8] |= 1 << bitIndex;
 			}
 
 			ByteBuffer buffer = ByteBuffer.allocateDirect(
