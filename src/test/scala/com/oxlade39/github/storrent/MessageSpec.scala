@@ -59,6 +59,46 @@ class MessageSpec extends Specification {
     }
   }
 
+  "Request" should {
+    "encode" in {
+      val r = Request(12, 33, 150)
+      val old = RequestMessage.craft(12, 33, 150)
+
+      test(old, r)
+    }
+  }
+
+  "Piece" should {
+    "encode" in {
+      val block: ByteString = ByteString("some piece of data")
+      val p = Piece(77, 1, block)
+      val old = PieceMessage.craft(77, 1, block.toByteBuffer)
+
+      test(old, p)
+    }
+  }
+
+  "Cancel" should {
+    "encode" in {
+      val c = Cancel(150, 155, 100000)
+      val old = CancelMessage.craft(150, 155, 100000)
+      test(old, c)
+    }
+  }
+
+  "Port" should {
+    "encode" in {
+      val p = Port(1025)
+
+      p.encode mustEqual
+        ByteString(ByteBuffer.allocate(4).putInt(3).array()) ++
+        ByteString(9.toByte) ++
+        ByteString(ByteBuffer.allocate(2).putShort(1025).array())
+
+
+    }
+  }
+
   def test(peerMessage: PeerMessage, message: Message) = {
     val messageByteBuffer = message.encode.asByteBuffer
     val peerMessageByteBuffer = peerMessage.getData

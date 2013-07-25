@@ -103,23 +103,32 @@ object BitOps {
 case class Request(index: Int, begin: Int, requestLength: Int) extends Message {
   val length = 13
   val messageId = Some(6)
-  val payload = Some(ByteString(index.toByte, begin.toByte, requestLength.toByte))
+  lazy val payload = Some(
+    ByteString(ByteBuffer.allocate(4).putInt(index).array()) ++
+      ByteString(ByteBuffer.allocate(4).putInt(begin).array()) ++
+      ByteString(ByteBuffer.allocate(4).putInt(requestLength).array()))
 }
 
 case class Piece(pieceIndex: Int, begin: Int, block: ByteString) extends Message {
   val length = 9 + block.size
   val messageId = Some(7)
-  val payload = Some(ByteString(pieceIndex.toByte, begin.toByte) ++ block)
+  lazy val payload = Some(
+    ByteString(ByteBuffer.allocate(4).putInt(pieceIndex).array()) ++
+    ByteString(ByteBuffer.allocate(4).putInt(begin).array()) ++
+    block)
 }
 
 case class Cancel(index: Int, begin: Int, requestLength: Int) extends Message {
   val length = 13
   val messageId = Some(8)
-  val payload = Some(ByteString(index.toByte, begin.toByte, requestLength.toByte))
+  lazy val payload = Some(
+    ByteString(ByteBuffer.allocate(4).putInt(index).array()) ++
+      ByteString(ByteBuffer.allocate(4).putInt(begin).array()) ++
+      ByteString(ByteBuffer.allocate(4).putInt(requestLength).array()))
 }
 
-case class Port(port: Int) extends Message {
+case class Port(port: Short) extends Message {
   val length = 3
   val messageId = Some(9)
-  val payload = Some(ByteString(port.toByte))
+  lazy val payload = Some(ByteString(ByteBuffer.allocate(2).putShort(port).array()))
 }
