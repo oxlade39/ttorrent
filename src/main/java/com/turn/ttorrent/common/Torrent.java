@@ -77,7 +77,7 @@ import org.slf4j.LoggerFactory;
  * @author mpetazzoni
  * @see <a href="http://wiki.theory.org/BitTorrentSpecification#Metainfo_File_Structure">Torrent meta-info file structure specification</a>
  */
-public class Torrent {
+public class Torrent implements ITorrent {
 
 	private static final Logger logger =
 		LoggerFactory.getLogger(Torrent.class);
@@ -303,28 +303,32 @@ public class Torrent {
 	 * containing those files.
 	 * </p>
 	 */
-	public String getName() {
+	@Override
+    public String getName() {
 		return this.name;
 	}
 
 	/**
 	 * Get this torrent's comment string.
 	 */
-	public String getComment() {
+	@Override
+    public String getComment() {
 		return this.comment;
 	}
 
 	/**
 	 * Get this torrent's creator (user, software, whatever...).
 	 */
-	public String getCreatedBy() {
+	@Override
+    public String getCreatedBy() {
 		return this.createdBy;
 	}
 
 	/**
 	 * Get the total size of this torrent.
 	 */
-	public long getSize() {
+	@Override
+    public long getSize() {
 		return this.size;
 	}
 
@@ -334,7 +338,8 @@ public class Torrent {
 	 * @return The list of relative filenames of all the files described in
 	 * this torrent.
 	 */
-	public List<String> getFilenames() {
+	@Override
+    public List<String> getFilenames() {
 		List<String> filenames = new LinkedList<String>();
 		for (TorrentFile file : this.files) {
 			filenames.add(file.file.getPath());
@@ -345,21 +350,24 @@ public class Torrent {
 	/**
 	 * Tells whether this torrent is multi-file or not.
 	 */
-	public boolean isMultifile() {
+	@Override
+    public boolean isMultifile() {
 		return this.files.size() > 1;
 	}
 
 	/**
 	 * Return the hash of the B-encoded meta-info structure of this torrent.
 	 */
-	public byte[] getInfoHash() {
+	@Override
+    public byte[] getInfoHash() {
 		return this.info_hash;
 	}
 
 	/**
 	 * Get this torrent's info hash (as an hexadecimal-coded string).
 	 */
-	public String getHexInfoHash() {
+	@Override
+    public String getHexInfoHash() {
 		return this.hex_info_hash;
 	}
 
@@ -377,28 +385,32 @@ public class Torrent {
 	/**
 	 * Return the B-encoded meta-info of this torrent.
 	 */
-	public byte[] getEncoded() {
+	@Override
+    public byte[] getEncoded() {
 		return this.encoded;
 	}
 
 	/**
 	 * Return the trackers for this torrent.
 	 */
-	public List<List<URI>> getAnnounceList() {
+	@Override
+    public List<List<URI>> getAnnounceList() {
 		return this.trackers;
 	}
 
 	/**
 	 * Returns the number of trackers for this torrent.
 	 */
-	public int getTrackerCount() {
+	@Override
+    public int getTrackerCount() {
 		return this.allTrackers.size();
 	}
 
 	/**
 	 * Tells whether we were an initial seeder for this torrent.
 	 */
-	public boolean isSeeder() {
+	@Override
+    public boolean isSeeder() {
 		return this.seeder;
 	}
 
@@ -408,7 +420,8 @@ public class Torrent {
 	 * @param output The stream to write to.
 	 * @throws IOException If an I/O error occurs while writing the file.
 	 */
-	public void save(OutputStream output) throws IOException {
+	@Override
+    public void save(OutputStream output) throws IOException {
 		output.write(this.getEncoded());
 	}
 

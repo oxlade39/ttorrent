@@ -98,6 +98,7 @@ case class Bitfield(bitfield: Seq[Boolean]) extends Message {
 
 object BitOps {
   lazy val bitMasks: Seq[Int] = 0.to(7).reverse.map(i => 1 << i)
+  def toHex(buf: Array[Byte]): String = buf.map("%02X" format _).mkString
 }
 
 case class Request(index: Int, begin: Int, requestLength: Int) extends Message {
