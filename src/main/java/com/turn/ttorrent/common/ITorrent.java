@@ -25,13 +25,10 @@ public interface ITorrent {
 
     String getHexInfoHash();
 
-    byte[] getEncoded();
-
     List<List<URI>> getAnnounceList();
 
     int getTrackerCount();
 
     boolean isSeeder();
 
-    void save(OutputStream output) throws IOException;
 }

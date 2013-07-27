@@ -7,9 +7,13 @@ import java.net.URI
 import scala.io.Source
 import com.turn.ttorrent.bcodec.{BEncoder, BEValue, BDecoder}
 import java.security.MessageDigest
+import java.util.Date
 
 
 object Torrent {
+
+  def extension = ".torrent"
+  def mediaType = "application/x-bittorrent"
 
   def fromFile(file: File): Torrent = {
     val tfr = new TorrentFileReader(file)
@@ -52,7 +56,7 @@ class TorrentFileReader(file: File) {
     files =>
       files.map {
         file =>
-          val path = file.getMap.asScala("path").getList.asScala.mkString(File.separator)
+          val path = file.getMap.asScala("path").getList.asScala.map(_.getString).mkString(File.separator)
           val size = file.getMap.asScala("length").getLong
           TorrentFile(path, size)
       }.toList
@@ -80,7 +84,7 @@ class TorrentFileReader(file: File) {
 case class Torrent(name: String,
                    comment: Option[String] = None,
                    createdBy: Option[String] = None,
-                   creationDate: Option[Long] = None,
+                   creationTimestamp: Option[Long] = None,
                    files: List[TorrentFile],
                    infoHash: ByteString,
                    announceList: List[List[URI]],
@@ -94,17 +98,17 @@ case class Torrent(name: String,
 
   def getCreatedBy = createdBy.getOrElse(null)
 
+  def creationDate = creationTimestamp.map(new Date(_))
+
   lazy val getSize = files.foldLeft(0L)(_ + _.size)
 
   def getFilenames = seqAsJavaList(files.map(_.name))
 
-  def isMultifile = files.size > 0
+  def isMultifile = files.size > 1
 
   def getInfoHash = infoHash.toArray
 
   lazy val getHexInfoHash = infoHash.map("%02X" format _).mkString
-
-  def getEncoded: Array[Byte] = ???
 
   lazy val getAnnounceList = seqAsJavaList(announceList.map(jl => seqAsJavaList(jl)))
 
@@ -112,9 +116,6 @@ case class Torrent(name: String,
 
   def isSeeder = seeder
 
-  def save(output: OutputStream) {
-    output.write(getEncoded)
-  }
 }
 
 case class TorrentFile(name: String, size: Long)
