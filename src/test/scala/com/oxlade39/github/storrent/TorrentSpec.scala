@@ -95,7 +95,7 @@ class TorrentSpec extends Specification {
     }
 
     "converts infoHash to hex" in {
-      val testFile: File = new File(Thread.currentThread.getContextClassLoader.getResource("ubuntu-13.04-desktop-amd64.iso.torrent").toURI)
+      val testFile: File = file("ubuntu-13.04-desktop-amd64.iso.torrent")
       val torrent: Torrent = Torrent.fromFile(testFile)
       val oldTorrent: OldTorrent = OldTorrent.load(testFile)
 
@@ -104,7 +104,7 @@ class TorrentSpec extends Specification {
     }
 
     "single file torrent is not multifile" in {
-      val testFile: File = new File(Thread.currentThread.getContextClassLoader.getResource("ubuntu-13.04-desktop-amd64.iso.torrent").toURI)
+      val testFile: File = file("ubuntu-13.04-desktop-amd64.iso.torrent")
       val torrent: Torrent = Torrent.fromFile(testFile)
 
       torrent.isMultifile mustEqual false
