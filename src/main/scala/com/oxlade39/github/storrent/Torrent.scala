@@ -12,8 +12,9 @@ import java.util.Date
 
 object Torrent {
 
-  def extension = ".torrent"
-  def mediaType = "application/x-bittorrent"
+  val extension = ".torrent"
+  val mediaType = "application/x-bittorrent"
+  val encoding = "ISO-8859-1"
 
   def fromFile(file: File): Torrent = {
     val tfr = new TorrentFileReader(file)

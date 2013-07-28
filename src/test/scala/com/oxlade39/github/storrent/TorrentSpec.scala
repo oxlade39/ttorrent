@@ -6,9 +6,6 @@ import com.turn.ttorrent.common.{Torrent => OldTorrent}
 import akka.util.ByteString
 import java.net.URI
 
-/**
- * @author dan
- */
 class TorrentSpec extends Specification {
 
   "Torrent" should {

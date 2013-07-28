@@ -133,7 +133,6 @@ public class Torrent implements ITorrent {
 	 * BitTorrent specification) and create a Torrent object from it.
 	 *
 	 * @param torrent The meta-info byte data.
-	 * @param parent The parent directory or location of the torrent files.
 	 * @param seeder Whether we'll be seeding for this torrent or not.
 	 * @throws IOException When the info dictionary can't be read or
 	 * encoded and hashed back to create the torrent's SHA-1 hash.
@@ -385,7 +384,6 @@ public class Torrent implements ITorrent {
 	/**
 	 * Return the B-encoded meta-info of this torrent.
 	 */
-	@Override
     public byte[] getEncoded() {
 		return this.encoded;
 	}
@@ -420,7 +418,6 @@ public class Torrent implements ITorrent {
 	 * @param output The stream to write to.
 	 * @throws IOException If an I/O error occurs while writing the file.
 	 */
-	@Override
     public void save(OutputStream output) throws IOException {
 		output.write(this.getEncoded());
 	}
@@ -605,7 +602,7 @@ public class Torrent implements ITorrent {
 	 * considering we'll be a full initial seeder for it.
 	 * </p>
 	 *
-	 * @param parent The parent directory or location of the torrent files,
+	 * @param source The parent directory or location of the torrent files,
 	 * also used as the torrent's name.
 	 * @param files The files to add into this torrent.
 	 * @param announceList The announce URIs organized as tiers that will 
