@@ -17,6 +17,7 @@ package com.turn.ttorrent.client;
 
 import com.turn.ttorrent.bcodec.InvalidBEncodingException;
 import com.turn.ttorrent.client.peer.PeerActivityListener;
+import com.turn.ttorrent.client.peer.Rate;
 import com.turn.ttorrent.client.peer.SharingPeer;
 import com.turn.ttorrent.client.storage.FileCollectionStorage;
 import com.turn.ttorrent.client.storage.FileStorage;
@@ -90,7 +91,9 @@ public class SharedTorrent extends Torrent implements PeerActivityListener {
 	private SortedSet<Piece> rarest;
 	private BitSet completedPieces;
 	private BitSet requestedPieces;
-
+	
+	private double maxUploadRate = 0.0;
+	private double maxDownloadRate = 0.0;
 	/**
 	 * Create a new shared torrent from a base Torrent object.
 	 *
@@ -235,6 +238,34 @@ public class SharedTorrent extends Torrent implements PeerActivityListener {
 		fis.read(data);
 		fis.close();
 		return new SharedTorrent(data, parent);
+	}
+
+	public double getMaxUploadRate() {
+		return this.maxUploadRate;
+	}
+
+	/**
+	 * Set the maximum upload rate (in kB/second) for this
+	 * torrent. A setting of <= 0.0 disables rate limiting.
+	 *
+	 * @param rate The maximum upload rate
+	 */
+	public void setMaxUploadRate(double rate) {
+		this.maxUploadRate = rate;
+	}
+
+	public double getMaxDownloadRate() {
+		return this.maxDownloadRate;
+	}
+
+	/**
+	 * Set the maximum download rate (in kB/second) for this
+	 * torrent. A setting of <= 0.0 disables rate limiting.
+	 *
+	 * @param rate The maximum download rate
+	 */
+	public void setMaxDownloadRate(double rate) {
+		this.maxDownloadRate = rate;
 	}
 
 	/**

@@ -220,7 +220,7 @@ public class Announce implements Runnable {
 				event = AnnounceRequestMessage.RequestEvent.NONE;
 			} catch (AnnounceException ae) {
 				logger.warn(ae.getMessage());
-				
+
 				try {
 					this.moveToNextTrackerClient();
 				} catch (AnnounceException e) {
@@ -257,14 +257,15 @@ public class Announce implements Runnable {
 
     /**
 	 * Returns the current tracker client used for announces.
-	 * @throws AnnounceException 
+	 * @throws AnnounceException When the current announce tier isn't defined
+	 *	in the torrent.
 	 */
 	public TrackerClient getCurrentTrackerClient() throws AnnounceException {
-		if (!this.clients.contains(this.currentTier)
-			|| !this.clients.get(this.currentTier).contains(this.currentClient)) {
+		if ((this.currentTier >= this.clients.size()) ||
+			(this.currentClient >= this.clients.get(this.currentTier).size())) {
 			throw new AnnounceException("Current tier or client isn't available");
 		}
-		
+
 		return this.clients
 			.get(this.currentTier)
 			.get(this.currentClient);
@@ -282,7 +283,8 @@ public class Announce implements Runnable {
 	 * The index of the currently used {@link TrackerClient} is reset to 0 to
 	 * reflect this change.
 	 * </p>
-	 * @throws AnnounceException 
+	 *
+	 * @throws AnnounceException
 	 */
 	private void promoteCurrentTrackerClient() throws AnnounceException {
 		logger.trace("Promoting current tracker client for {} " +
@@ -310,7 +312,8 @@ public class Announce implements Runnable {
 	 * By design no empty tier can be in the tracker list structure so we don't
 	 * need to check for empty tiers here.
 	 * </p>
-	 * @throws AnnounceException 
+	 *
+	 * @throws AnnounceException
 	 */
 	private void moveToNextTrackerClient() throws AnnounceException {
 		int tier = this.currentTier;
