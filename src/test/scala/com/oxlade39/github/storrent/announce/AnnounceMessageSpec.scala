@@ -1,11 +1,15 @@
 package com.oxlade39.github.storrent.announce
 
 import org.specs2.mutable.Specification
-import com.oxlade39.github.storrent.{PeerId, Torrent}
+import com.oxlade39.github.storrent.{Peer, PeerId, Torrent}
 import java.io.File
 import java.net.{InetAddress, URL}
-import com.turn.ttorrent.common.protocol.http.HTTPAnnounceRequestMessage
+import com.turn.ttorrent.common.protocol.http.{HTTPAnnounceResponseMessage, HTTPAnnounceRequestMessage}
 import com.turn.ttorrent.common.protocol.TrackerMessage.AnnounceRequestMessage.RequestEvent
+import com.turn.ttorrent.bcodec.{BEValue, BEncoder}
+import java.util
+import akka.util.ByteString
+import java.nio.ByteBuffer
 
 class AnnounceMessageSpec extends Specification {
   "TrackerRequest" should {
@@ -42,6 +46,52 @@ class AnnounceMessageSpec extends Specification {
       val withParams: URL = request.appendParams(announceUrl)
 
       withParams mustEqual oldMessage.buildAnnounceURL(announceUrl)
+    }
+  }
+
+  "NormalTrackerResponse" should {
+    "parse from ByteString with compact peers" in {
+      val jmap = new util.HashMap[String, BEValue]()
+      jmap.put("interval", new BEValue(20))
+      jmap.put("complete", new BEValue(100))
+      jmap.put("incomplete", new BEValue(200))
+
+
+      val ipOne = InetAddress.getByName("127.0.0.1")
+      val portOne = 1024.toShort
+      val ipTwo = InetAddress.getByName("192.168.0.1")
+      val portTwo = 1025.toShort
+
+      val compactPeers = ByteBuffer.allocate(12)
+        .put(ipOne.getAddress).putShort(portOne)
+        .put(ipTwo.getAddress).putShort(portTwo)
+        .array()
+
+      jmap.put("peers", new BEValue(compactPeers))
+
+      val byteBuffer = BEncoder.bencode(jmap)
+
+      val oldMessage = HTTPAnnounceResponseMessage.parse(byteBuffer)
+      val newMessage = NormalTrackerResponse.unapply(ByteString(byteBuffer.array())).get
+
+      oldMessage.getInterval mustEqual 20
+      newMessage.clientRequestInterval mustEqual 20
+
+      oldMessage.getComplete mustEqual 100
+      newMessage.numberOfCompletedPeers mustEqual 100
+
+      oldMessage.getIncomplete mustEqual 200
+      newMessage.numberOfUncompletedPeers mustEqual 200
+
+      oldMessage.getPeers.get(0).getIp mustEqual "127.0.0.1"
+      oldMessage.getPeers.get(0).getPort mustEqual 1024
+      oldMessage.getPeers.get(1).getIp mustEqual "192.168.0.1"
+      oldMessage.getPeers.get(1).getPort mustEqual 1025
+
+      newMessage.peers.head.address.getAddress.getHostAddress mustEqual "127.0.0.1"
+      newMessage.peers.head.port mustEqual 1024
+      newMessage.peers.tail.head.address.getAddress.getHostAddress mustEqual "192.168.0.1"
+      newMessage.peers.tail.head.port mustEqual 1025
     }
   }
 

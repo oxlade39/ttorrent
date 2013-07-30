@@ -1,8 +1,10 @@
 package com.oxlade39.github.storrent.announce
 
 import akka.util.ByteString
-import java.net.{URLEncoder, URL, InetAddress}
-import com.oxlade39.github.storrent.{Torrent, PeerId, Peer}
+import java.net.{InetSocketAddress, URLEncoder, URL, InetAddress}
+import com.oxlade39.github.storrent.{BitOps, Torrent, PeerId, Peer}
+import com.turn.ttorrent.bcodec.BDecoder
+import java.nio.ByteBuffer
 
 sealed trait Message {
   def urlEncode: String => String = s => URLEncoder.encode(s, Torrent.encoding)
@@ -97,6 +99,36 @@ case class NormalTrackerResponse(
   peers: List[Peer]
 ) extends TrackerResponse{
   def appendParams(url: URL) = url
+}
+
+object NormalTrackerResponse {
+  def unapply(bytes: ByteString): Option[NormalTrackerResponse] = {
+    import collection.JavaConversions._
+
+    val decoded = BDecoder.bdecode(bytes.toByteBuffer)
+    val asMap = decoded.getMap.toMap
+    if(!asMap.containsKey("peers")) None
+    else {
+
+      val asBytes = asMap("peers").getBytes
+      val peers = asBytes.grouped(6).map{ b =>
+        val ip = InetAddress.getByAddress(b.take(4).toArray)
+        val port = (0xFF & b.drop(4).head) << 8 | (0xFF & b.drop(5).head)
+        val address = new InetSocketAddress(ip, port)
+        Peer(address)
+      }
+
+
+      Some(NormalTrackerResponse(
+        asMap("interval").getInt,
+        asMap.get("min interval").map(_.getInt),
+        asMap.get("tracker id").map(_.getString),
+        asMap("complete").getInt,
+        asMap("incomplete").getInt,
+        peers.toList
+      ))
+    }
+  }
 }
 
 case class WarningTrackerResponse(
