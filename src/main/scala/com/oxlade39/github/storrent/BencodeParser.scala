@@ -12,6 +12,7 @@ object BencodeParser {
   val identifiers = ('i'.toByte :: 'l'.toByte :: 'd'.toByte :: digits).toSet
 
   def parse(bytes: ByteString): Option[BValue] = p2(bytes, None).headOption
+  def parse(s: String): Option[BValue] = p2(ByteString(s), None).headOption
 
   def p2(bytes: ByteString, accum: Option[BValue]): List[BValue] = {
     if(bytes.isEmpty) accum.map(List(_)).getOrElse(Nil)

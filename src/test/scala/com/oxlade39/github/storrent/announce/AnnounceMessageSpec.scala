@@ -75,21 +75,15 @@ class AnnounceMessageSpec extends Specification {
       jmap.put("peers", new BEValue(compactPeers))
 
       val byteBuffer = BEncoder.bencode(jmap)
-//      val bmap = BMap(Map(
-//        BBytes(ByteString("interval")) -> BInt(20),
-//        BBytes(ByteString("complete")) -> BInt(100),
-//        BBytes(ByteString("incomplete")) -> BInt(200),
-//        BBytes(ByteString("peers")) -> BBytes(cp2)
-//      )).encode
-
-//      val b = BencodeParser2.parse(ByteString(byteBuffer)).get.asInstanceOf[BMap].values(BBytes(ByteString("peers"))) match {
-//        case BBytes(bs) => Some(bs.toArray)
-//        case _ => None
-//      }
-//      b.get mustEqual compactPeers
+      val bmap = BMap(Map(
+        BBytes(ByteString("interval")) -> BInt(20),
+        BBytes(ByteString("complete")) -> BInt(100),
+        BBytes(ByteString("incomplete")) -> BInt(200),
+        BBytes(ByteString("peers")) -> BBytes(cp2)
+      )).encode
 
       val oldMessage = HTTPAnnounceResponseMessage.parse(byteBuffer)
-      val newMessage = NormalTrackerResponse.unapply(ByteString(byteBuffer.array())).get
+      val newMessage = NormalTrackerResponse.unapply(bmap).get
 
       oldMessage.getInterval mustEqual 20
       newMessage.clientRequestInterval mustEqual 20
