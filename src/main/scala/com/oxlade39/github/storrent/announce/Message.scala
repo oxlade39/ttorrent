@@ -111,7 +111,7 @@ object NormalTrackerResponse {
   def unapply(bytes: ByteString): Option[NormalTrackerResponse] = {
     logger.trace("parsing {}", bytes.utf8String)
 
-    BencodeParser2.parse(bytes) match {
+    BencodeParser.parse(bytes) match {
       case Some(BMap(values)) if values.contains(BBytes(ByteString("peers"))) => {
 
         val p1 = values(BBytes(ByteString("peers")))
@@ -119,8 +119,6 @@ object NormalTrackerResponse {
           case BBytes(bs) => Some(bs.toArray)
           case _ => None
         }
-
-        println(asBytes.size)
 
         def bytesToPeers: Array[Byte] => Iterator[Peer] = bytes => bytes.grouped(6).map{ b =>
           val ip = InetAddress.getByAddress(b.take(4).toArray)
@@ -156,9 +154,7 @@ object NormalTrackerResponse {
                                       incomplete,
                                       peers.toList)
       }
-      case x  =>
-        println(x)
-        None
+      case x  => None
     }
   }
 }

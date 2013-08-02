@@ -9,7 +9,7 @@ case class BInt(value: Int) extends BValue{
   lazy val encode = "i" + value + "e"
 }
 case class BBytes(value: ByteString) extends BValue{
-  lazy val encode = value.size + ":" + value
+  lazy val encode = value.size + ":" + value.utf8String
 }
 case class BList(values: BValue*) extends BValue{
   lazy val encode = values.foldLeft("l")((accum, value) => accum + value.encode) + "e"
