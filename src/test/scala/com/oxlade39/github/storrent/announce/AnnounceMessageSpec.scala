@@ -1,7 +1,7 @@
 package com.oxlade39.github.storrent.announce
 
 import org.specs2.mutable.Specification
-import com.oxlade39.github.storrent.{Peer, PeerId, Torrent}
+import com.oxlade39.github.storrent._
 import java.io.File
 import java.net.{InetAddress, URL}
 import com.turn.ttorrent.common.protocol.http.{HTTPAnnounceResponseMessage, HTTPAnnounceRequestMessage}
@@ -10,6 +10,9 @@ import com.turn.ttorrent.bcodec.{BEValue, BEncoder}
 import java.util
 import akka.util.ByteString
 import java.nio.ByteBuffer
+import com.oxlade39.github.storrent.announce.TrackerRequest
+import com.oxlade39.github.storrent.BMap
+import scala.Some
 
 class AnnounceMessageSpec extends Specification {
   "TrackerRequest" should {
@@ -67,9 +70,23 @@ class AnnounceMessageSpec extends Specification {
         .put(ipTwo.getAddress).putShort(portTwo)
         .array()
 
+      val cp2 = ByteString(compactPeers)
+
       jmap.put("peers", new BEValue(compactPeers))
 
       val byteBuffer = BEncoder.bencode(jmap)
+//      val bmap = BMap(Map(
+//        BBytes(ByteString("interval")) -> BInt(20),
+//        BBytes(ByteString("complete")) -> BInt(100),
+//        BBytes(ByteString("incomplete")) -> BInt(200),
+//        BBytes(ByteString("peers")) -> BBytes(cp2)
+//      )).encode
+
+//      val b = BencodeParser2.parse(ByteString(byteBuffer)).get.asInstanceOf[BMap].values(BBytes(ByteString("peers"))) match {
+//        case BBytes(bs) => Some(bs.toArray)
+//        case _ => None
+//      }
+//      b.get mustEqual compactPeers
 
       val oldMessage = HTTPAnnounceResponseMessage.parse(byteBuffer)
       val newMessage = NormalTrackerResponse.unapply(ByteString(byteBuffer.array())).get

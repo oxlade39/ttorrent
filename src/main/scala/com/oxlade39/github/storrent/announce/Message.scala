@@ -2,9 +2,13 @@ package com.oxlade39.github.storrent.announce
 
 import akka.util.ByteString
 import java.net.{InetSocketAddress, URLEncoder, URL, InetAddress}
-import com.oxlade39.github.storrent.{BitOps, Torrent, PeerId, Peer}
+import com.oxlade39.github.storrent._
 import com.turn.ttorrent.bcodec.BDecoder
 import java.nio.ByteBuffer
+import com.oxlade39.github.storrent.Peer
+import scala.Some
+import akka.event.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 sealed trait Message {
   def urlEncode: String => String = s => URLEncoder.encode(s, Torrent.encoding)
@@ -102,31 +106,59 @@ case class NormalTrackerResponse(
 }
 
 object NormalTrackerResponse {
+  val logger = LoggerFactory.getLogger(NormalTrackerResponse.getClass)
+
   def unapply(bytes: ByteString): Option[NormalTrackerResponse] = {
-    import collection.JavaConversions._
+    logger.trace("parsing {}", bytes.utf8String)
 
-    val decoded = BDecoder.bdecode(bytes.toByteBuffer)
-    val asMap = decoded.getMap.toMap
-    if(!asMap.containsKey("peers")) None
-    else {
+    BencodeParser2.parse(bytes) match {
+      case Some(BMap(values)) if values.contains(BBytes(ByteString("peers"))) => {
 
-      val asBytes = asMap("peers").getBytes
-      val peers = asBytes.grouped(6).map{ b =>
-        val ip = InetAddress.getByAddress(b.take(4).toArray)
-        val port = (0xFF & b.drop(4).head) << 8 | (0xFF & b.drop(5).head)
-        val address = new InetSocketAddress(ip, port)
-        Peer(address)
+        val p1 = values(BBytes(ByteString("peers")))
+        val asBytes = p1 match {
+          case BBytes(bs) => Some(bs.toArray)
+          case _ => None
+        }
+
+        println(asBytes.size)
+
+        def bytesToPeers: Array[Byte] => Iterator[Peer] = bytes => bytes.grouped(6).map{ b =>
+          val ip = InetAddress.getByAddress(b.take(4).toArray)
+          val port = (0xFF & b.drop(4).head) << 8 | (0xFF & b.drop(5).head)
+          val address = new InetSocketAddress(ip, port)
+          Peer(address)
+        }
+
+        def requiredInt(key: String) = values(BBytes(ByteString(key))) match {
+          case BInt(i) => Some(i)
+          case _ => None
+        }
+
+        def optionalInt(key: String) = values.get(BBytes(ByteString(key))) flatMap {
+          case BInt(i) => Some(i)
+          case _ => None
+        }
+
+        def optionalString(key: String) = values.get(BBytes(ByteString(key))) flatMap {
+          case BBytes(s) => Some(s.utf8String)
+          case _ => None
+        }
+
+        for {
+          interval <- requiredInt("interval")
+          complete <- requiredInt("complete")
+          incomplete <- requiredInt("incomplete")
+          peers <- asBytes.map(bytesToPeers)
+        } yield NormalTrackerResponse(interval,
+                                      optionalInt("min interval"),
+                                      optionalString("tracker id"),
+                                      complete,
+                                      incomplete,
+                                      peers.toList)
       }
-
-
-      Some(NormalTrackerResponse(
-        asMap("interval").getInt,
-        asMap.get("min interval").map(_.getInt),
-        asMap.get("tracker id").map(_.getString),
-        asMap("complete").getInt,
-        asMap("incomplete").getInt,
-        peers.toList
-      ))
+      case x  =>
+        println(x)
+        None
     }
   }
 }
