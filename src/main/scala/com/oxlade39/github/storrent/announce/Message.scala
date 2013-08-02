@@ -112,9 +112,9 @@ object NormalTrackerResponse {
     logger.trace("parsing {}", bytes.utf8String)
 
     BencodeParser.parse(bytes) match {
-      case Some(BMap(values)) if values.contains(BBytes(ByteString("peers"))) => {
+      case Some(BMap(values)) if values.contains(BBytes("peers")) => {
 
-        val p1 = values(BBytes(ByteString("peers")))
+        val p1 = values(BBytes("peers"))
         val asBytes = p1 match {
           case BBytes(bs) => Some(bs.toArray)
           case _ => None
@@ -127,17 +127,17 @@ object NormalTrackerResponse {
           Peer(address)
         }
 
-        def requiredInt(key: String) = values(BBytes(ByteString(key))) match {
+        def requiredInt(key: String) = values(BBytes(key)) match {
           case BInt(i) => Some(i)
           case _ => None
         }
 
-        def optionalInt(key: String) = values.get(BBytes(ByteString(key))) flatMap {
+        def optionalInt(key: String) = values.get(BBytes(key)) flatMap {
           case BInt(i) => Some(i)
           case _ => None
         }
 
-        def optionalString(key: String) = values.get(BBytes(ByteString(key))) flatMap {
+        def optionalString(key: String) = values.get(BBytes(key)) flatMap {
           case BBytes(s) => Some(s.utf8String)
           case _ => None
         }

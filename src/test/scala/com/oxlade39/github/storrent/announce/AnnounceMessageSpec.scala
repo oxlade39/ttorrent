@@ -76,10 +76,10 @@ class AnnounceMessageSpec extends Specification {
 
       val byteBuffer = BEncoder.bencode(jmap)
       val bmap = BMap(Map(
-        BBytes(ByteString("interval")) -> BInt(20),
-        BBytes(ByteString("complete")) -> BInt(100),
-        BBytes(ByteString("incomplete")) -> BInt(200),
-        BBytes(ByteString("peers")) -> BBytes(cp2)
+        BBytes("interval") -> BInt(20),
+        BBytes("complete") -> BInt(100),
+        BBytes("incomplete") -> BInt(200),
+        BBytes("peers") -> BBytes(cp2)
       )).encode
 
       val oldMessage = HTTPAnnounceResponseMessage.parse(byteBuffer)
