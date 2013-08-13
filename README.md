@@ -1,7 +1,7 @@
 Ttorrent, a Java implementation of the BitTorrent protocol
 ==========================================================
 
-[![Build Status](https://travis-ci.org/oxlade39/ttorrent.png?branch=source_master)](https://travis-ci.org/oxlade39/ttorrent)
+[![Build Status](https://travis-ci.org/oxlade39/ttorrent.png?branch=master)](https://travis-ci.org/oxlade39/ttorrent)
 
 Description
 -----------
