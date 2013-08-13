@@ -4,7 +4,7 @@ import org.specs2.mutable.Specification
 import com.oxlade39.github.storrent._
 import java.io.File
 import java.net.{InetAddress, URL}
-import com.turn.ttorrent.common.protocol.http.{HTTPAnnounceResponseMessage, HTTPAnnounceRequestMessage}
+import com.turn.ttorrent.common.protocol.http.{HTTPTrackerErrorMessage, HTTPAnnounceResponseMessage, HTTPAnnounceRequestMessage}
 import com.turn.ttorrent.common.protocol.TrackerMessage.AnnounceRequestMessage.RequestEvent
 import com.turn.ttorrent.bcodec.{BEValue, BEncoder}
 import java.util
@@ -103,6 +103,20 @@ class AnnounceMessageSpec extends Specification {
       newMessage.peers.head.port mustEqual 1024
       newMessage.peers.tail.head.address.getAddress.getHostAddress mustEqual "192.168.0.1"
       newMessage.peers.tail.head.port mustEqual 1025
+    }
+  }
+
+  "FailureTrackerResponse" should {
+    "parse from ByteString with failure message" in {
+      val bencoded = BMap(Map(
+        BBytes("failure reason") -> BBytes(ByteString("bad host", Torrent.encoding))
+      )).encode
+
+      val response = FailureTrackerResponse.unapply(bencoded)
+      val oldResponse = HTTPTrackerErrorMessage.parse(bencoded.toByteBuffer)
+
+      oldResponse.getReason mustEqual "bad host"
+      response.get.failure mustEqual "bad host"
     }
   }
 

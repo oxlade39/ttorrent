@@ -3,18 +3,13 @@ package com.oxlade39.github.storrent.announce
 import akka.util.ByteString
 import java.net.{InetSocketAddress, URLEncoder, URL, InetAddress}
 import com.oxlade39.github.storrent._
-import com.turn.ttorrent.bcodec.BDecoder
-import java.nio.ByteBuffer
 import com.oxlade39.github.storrent.Peer
 import scala.Some
-import akka.event.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 sealed trait Message {
   def urlEncode: String => String = s => URLEncoder.encode(s, Torrent.encoding)
   def urlEncodeB: ByteString => String = b => urlEncode(b.decodeString(Torrent.encoding))
-
-  def appendParams(url: URL): URL
 }
 
 sealed trait TrackerRequestEvent {
@@ -100,7 +95,8 @@ case class NormalTrackerResponse(
   trackerId: Option[String] = None,
   numberOfCompletedPeers: Int,
   numberOfUncompletedPeers: Int,
-  peers: List[Peer]
+  peers: List[Peer],
+  warningMessage: Option[String] = None
 ) extends TrackerResponse{
   def appendParams(url: URL) = url
 }
@@ -152,27 +148,24 @@ object NormalTrackerResponse {
                                       optionalString("tracker id"),
                                       complete,
                                       incomplete,
-                                      peers.toList)
+                                      peers.toList,
+                                      optionalString("warning message"))
       }
       case x  => None
     }
   }
 }
 
-case class WarningTrackerResponse(
-  warning: String,
-  response: NormalTrackerResponse
-) extends TrackerResponse {
-  def clientRequestInterval = response.clientRequestInterval
-  def minimumAnnounceInterval = response.minimumAnnounceInterval
-  def trackerId = response.trackerId
-  def numberOfCompletedPeers = response.numberOfCompletedPeers
-  def numberOfUncompletedPeers = response.numberOfUncompletedPeers
-  def peers = response.peers
-
+case class FailureTrackerResponse(failure: String) extends TrackerResponse{
   def appendParams(url: URL) = url
 }
 
-case class FailureTrackerResponse(failure: String) extends TrackerResponse{
-  def appendParams(url: URL) = url
+object FailureTrackerResponse {
+  def unapply(bytes: ByteString): Option[FailureTrackerResponse] = BencodeParser.parse(bytes) match {
+    case Some(BMap(values)) => values.get(BBytes("failure reason")).flatMap {
+      case BBytes(x) => Some(FailureTrackerResponse(x.decodeString(Torrent.encoding)))
+      case _ => None
+    }
+    case _ => None
+  }
 }

@@ -46,9 +46,8 @@ object HttpAnnounceClient {
         val stream = Source.fromInputStream(is)
         try {
           ByteString(stream.map(_.toByte).toArray) match {
-            case norm : NormalTrackerResponse => respondTo ! norm
-            case warn : WarningTrackerResponse => respondTo ! warn
-            case fail : FailureTrackerResponse => respondTo ! fail
+            case norm @ NormalTrackerResponse(_) => respondTo ! norm
+            case fail @ FailureTrackerResponse(_) => respondTo ! fail
           }
         } finally {
           stream.close()
