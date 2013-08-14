@@ -83,7 +83,7 @@ class AnnounceMessageSpec extends Specification {
       )).encode
 
       val oldMessage = HTTPAnnounceResponseMessage.parse(byteBuffer)
-      val newMessage = NormalTrackerResponse.unapply(bmap).get
+      val newMessage = NormalTrackerResponse.parse(bmap).get
 
       oldMessage.getInterval mustEqual 20
       newMessage.clientRequestInterval mustEqual 20
@@ -112,7 +112,7 @@ class AnnounceMessageSpec extends Specification {
         BBytes("failure reason") -> BBytes(ByteString("bad host", Torrent.encoding))
       )).encode
 
-      val response = FailureTrackerResponse.unapply(bencoded)
+      val response = FailureTrackerResponse.parse(bencoded)
       val oldResponse = HTTPTrackerErrorMessage.parse(bencoded.toByteBuffer)
 
       oldResponse.getReason mustEqual "bad host"

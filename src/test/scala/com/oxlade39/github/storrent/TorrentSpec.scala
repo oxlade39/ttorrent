@@ -5,13 +5,14 @@ import java.io.File
 import com.turn.ttorrent.common.{Torrent => OldTorrent}
 import akka.util.ByteString
 import java.net.URI
+import com.oxlade39.github.storrent.test.util.TestFiles
 
-class TorrentSpec extends Specification {
+class TorrentSpec extends Specification with TestFiles {
 
   "Torrent" should {
     "load name from file" in {
 
-      val testFile: File = file("ubuntu-13.04-desktop-amd64.iso.torrent")
+      val testFile: File = ubuntuTorrent
       val torrent: Torrent = Torrent.fromFile(testFile)
       val oldTorrent: OldTorrent = OldTorrent.load(testFile)
 
@@ -21,7 +22,7 @@ class TorrentSpec extends Specification {
 
     "load comment from file" in {
 
-      val testFile: File = file("ubuntu-13.04-desktop-amd64.iso.torrent")
+      val testFile: File = ubuntuTorrent
       val torrent: Torrent = Torrent.fromFile(testFile)
       val oldTorrent: OldTorrent = OldTorrent.load(testFile)
 
@@ -31,7 +32,7 @@ class TorrentSpec extends Specification {
 
     "load createdBy from file" in {
 
-      val testFile: File = file("ubuntu-13.04-desktop-amd64.iso.torrent")
+      val testFile: File = ubuntuTorrent
       val torrent: Torrent = Torrent.fromFile(testFile)
       val oldTorrent: OldTorrent = OldTorrent.load(testFile)
 
@@ -41,7 +42,7 @@ class TorrentSpec extends Specification {
 
     "load file names from file" in {
 
-      val testFile: File = file("ubuntu-13.04-desktop-amd64.iso.torrent")
+      val testFile: File = ubuntuTorrent
       val torrent: Torrent = Torrent.fromFile(testFile)
       val oldTorrent: OldTorrent = OldTorrent.load(testFile)
 
@@ -51,7 +52,7 @@ class TorrentSpec extends Specification {
 
     "calculate infoHash file" in {
 
-      val testFile: File = file("ubuntu-13.04-desktop-amd64.iso.torrent")
+      val testFile: File = ubuntuTorrent
       val torrent: Torrent = Torrent.fromFile(testFile)
       val oldTorrent: OldTorrent = OldTorrent.load(testFile)
 
@@ -61,7 +62,7 @@ class TorrentSpec extends Specification {
 
     "calculate size from files" in {
 
-      val testFile: File = file("ubuntu-13.04-desktop-amd64.iso.torrent")
+      val testFile: File = ubuntuTorrent
       val torrent: Torrent = Torrent.fromFile(testFile)
       val oldTorrent: OldTorrent = OldTorrent.load(testFile)
 
@@ -71,7 +72,7 @@ class TorrentSpec extends Specification {
 
     "calculate tracker count from announce list" in {
 
-      val testFile: File = file("ubuntu-13.04-desktop-amd64.iso.torrent")
+      val testFile: File = ubuntuTorrent
       val torrent: Torrent = Torrent.fromFile(testFile)
       val oldTorrent: OldTorrent = OldTorrent.load(testFile)
 
@@ -81,7 +82,7 @@ class TorrentSpec extends Specification {
 
     "loads announceList from file" in {
 
-      val testFile: File = file("ubuntu-13.04-desktop-amd64.iso.torrent")
+      val testFile: File = ubuntuTorrent
       val torrent: Torrent = Torrent.fromFile(testFile)
       val oldTorrent: OldTorrent = OldTorrent.load(testFile)
 
@@ -92,7 +93,7 @@ class TorrentSpec extends Specification {
     }
 
     "converts infoHash to hex" in {
-      val testFile: File = file("ubuntu-13.04-desktop-amd64.iso.torrent")
+      val testFile: File = ubuntuTorrent
       val torrent: Torrent = Torrent.fromFile(testFile)
       val oldTorrent: OldTorrent = OldTorrent.load(testFile)
 
@@ -101,14 +102,14 @@ class TorrentSpec extends Specification {
     }
 
     "single file torrent is not multifile" in {
-      val testFile: File = file("ubuntu-13.04-desktop-amd64.iso.torrent")
+      val testFile: File = ubuntuTorrent
       val torrent: Torrent = Torrent.fromFile(testFile)
 
       torrent.isMultifile mustEqual false
     }
     
     "multi file torrent has multiple torrent files" in {
-      val testFile: File = file("TP2001 Wallpapers Pack 2k13_01.torrent")
+      val testFile: File = multiFileTorrent
       val torrent: Torrent = Torrent.fromFile(testFile)
       torrent.isMultifile mustEqual true
       torrent.files mustEqual
@@ -120,8 +121,4 @@ class TorrentSpec extends Specification {
 
   }
 
-
-  def file(torrentFileName: String): File = {
-    new File(Thread.currentThread.getContextClassLoader.getResource(torrentFileName).toURI)
-  }
 }

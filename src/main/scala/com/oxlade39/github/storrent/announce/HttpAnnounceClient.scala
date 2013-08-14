@@ -5,6 +5,7 @@ import java.net.{MalformedURLException, URI}
 import java.io.IOException
 import scala.io.Source
 import akka.util.ByteString
+import org.apache.commons.io.output.ByteArrayOutputStream
 
 class HttpAnnounceClient(trackerUri: URI)
   extends Actor
@@ -41,16 +42,22 @@ object HttpAnnounceClient {
         val respondTo = sender
         val url = trackerUri.toURL
         val withParams = r.appendParams(url)
+        log.info("making request to {}", withParams)
         val connection = withParams.openConnection
         val is = connection.getInputStream
-        val stream = Source.fromInputStream(is)
         try {
-          ByteString(stream.map(_.toByte).toArray) match {
-            case norm @ NormalTrackerResponse(_) => respondTo ! norm
-            case fail @ FailureTrackerResponse(_) => respondTo ! fail
-          }
+          val baos: ByteArrayOutputStream = new ByteArrayOutputStream
+          baos.write(is)
+          val bs = ByteString(baos.toByteArray)
+
+          val responseOption = NormalTrackerResponse.parse(bs).orElse(FailureTrackerResponse.parse(bs))
+          responseOption map (respondTo ! _)
+          
+        } catch {
+          case t: Throwable =>
+            log.error(t, t.getMessage)
         } finally {
-          stream.close()
+          is.close()
         }
       }
     }

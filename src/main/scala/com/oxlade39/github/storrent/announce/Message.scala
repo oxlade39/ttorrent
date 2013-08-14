@@ -97,14 +97,12 @@ case class NormalTrackerResponse(
   numberOfUncompletedPeers: Int,
   peers: List[Peer],
   warningMessage: Option[String] = None
-) extends TrackerResponse{
-  def appendParams(url: URL) = url
-}
+) extends TrackerResponse
 
 object NormalTrackerResponse {
   val logger = LoggerFactory.getLogger(NormalTrackerResponse.getClass)
 
-  def unapply(bytes: ByteString): Option[NormalTrackerResponse] = {
+  def parse(bytes: ByteString): Option[NormalTrackerResponse] = {
     logger.trace("parsing {}", bytes.utf8String)
 
     BencodeParser.parse(bytes) match {
@@ -156,12 +154,10 @@ object NormalTrackerResponse {
   }
 }
 
-case class FailureTrackerResponse(failure: String) extends TrackerResponse{
-  def appendParams(url: URL) = url
-}
+case class FailureTrackerResponse(failure: String) extends TrackerResponse
 
 object FailureTrackerResponse {
-  def unapply(bytes: ByteString): Option[FailureTrackerResponse] = BencodeParser.parse(bytes) match {
+  def parse(bytes: ByteString): Option[FailureTrackerResponse] = BencodeParser.parse(bytes) match {
     case Some(BMap(values)) => values.get(BBytes("failure reason")).flatMap {
       case BBytes(x) => Some(FailureTrackerResponse(x.decodeString(Torrent.encoding)))
       case _ => None
