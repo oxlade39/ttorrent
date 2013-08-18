@@ -36,6 +36,7 @@ case object KeepAlive extends Message {
 case object Choke extends MessageWithoutPayload {val messageId = Some(0)}
 case object UnChoke extends MessageWithoutPayload {val messageId = Some(1)}
 case object Interested extends MessageWithoutPayload {val messageId = Some(2)}
+case object NotInterested extends MessageWithoutPayload {val messageId = Some(3)}
 
 /**
  * <p>

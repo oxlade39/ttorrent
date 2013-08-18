@@ -19,7 +19,7 @@ class TorrentServer(bindAddress: InetSocketAddress) extends Actor with ActorLogg
 
   def receive = {
     case TorrentServer.Serve(t) => {
-      torrents += t
+      startServing(t)
       context.become(listening)
     }
   }
@@ -34,6 +34,13 @@ class TorrentServer(bindAddress: InetSocketAddress) extends Actor with ActorLogg
 
       connection ! Tcp.Register(connectionHandler)
     }
+
+    case TorrentServer.Serve(t) => startServing(t)
+  }
+
+  def startServing(torrent: Torrent) {
+    torrents += torrent
+    log.info("now serving {}", torrents)
   }
 }
 

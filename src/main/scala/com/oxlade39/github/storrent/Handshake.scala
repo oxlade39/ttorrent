@@ -9,6 +9,8 @@ case class Handshake(infoHash: ByteString, peerId: PeerId) {
       ByteString(new Array[Byte](8)) ++
       infoHash ++
       peerId.encoded
+
+  override def toString = "Handshake(\"" + infoHash.utf8String + "\"," + peerId.toString + ")"
 }
 
 object Handshake {
