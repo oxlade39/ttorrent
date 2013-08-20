@@ -17,6 +17,14 @@ class MultiTrackerExtension(announceUrls: List[List[URI]])
   extends Actor
   with ActorLogging {
 
+  /**
+   * <a href="http://www.bittorrent.org/beps/bep_0012.html">Order of Processing</a>
+   * The tiers of announces will be processed sequentially; all URLs in each tier must be checked before the client
+   * goes on to the next tier. URLs within each tier will be processed in a randomly chosen order; in other words,
+   * the list will be shuffled when first read, and then parsed in order. In addition, if a connection with a
+   * tracker is successful, it will be moved to the front of the tier
+   *
+   */
   var trackerTiers: TrackerHierarchy = TrackerHierarchy(announceUrls.map { trackerUrls =>
     TrackerTier(trackerUrls).shuffle
   })
@@ -29,6 +37,7 @@ class MultiTrackerExtension(announceUrls: List[List[URI]])
   def receive = {
     case request: TrackerRequest => currentTracker.forward(request)
     case Terminated(client) => {
+      log.info("client actor {} terminated so moving on to next client", client)
       trackerTiers = trackerTiers.next
       currentTracker = newTracker
     }

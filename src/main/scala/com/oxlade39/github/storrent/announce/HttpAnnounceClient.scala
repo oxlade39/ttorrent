@@ -28,7 +28,19 @@ class HttpAnnounceClient(trackerUri: URI)
 
   def receive = {
     case HttpAnnounceClient.Register(actor) => listeners :+= actor
-    case r: TrackerRequest => child.tell(r, sender)
+    case r: TrackerRequest => {
+      val replyTo = sender
+      child ! HttpAnnounceClient.ChildRequest(r, replyTo)
+    }
+    case HttpAnnounceClient.ChildResponse(response, originalSender) => {
+      response match {
+        case normal: NormalTrackerResponse => originalSender ! normal
+        case fail: FailureTrackerResponse => {
+          log.info("{} so stopping {}", fail, self)
+          context.stop(self)
+        }
+      }
+    }
     case Terminated(c) => child = context.watch(context.actorOf(HttpAnnounceClient.child(trackerUri)))
   }
 }
@@ -38,10 +50,10 @@ object HttpAnnounceClient {
 
   private[HttpAnnounceClient] def child(trackerUri: URI): Props = Props(new Actor with ActorLogging {
     def receive = {
-      case r: TrackerRequest => {
+      case ChildRequest(originalRequest, originalSender) => {
         val respondTo = sender
         val url = trackerUri.toURL
-        val withParams = r.appendParams(url)
+        val withParams = originalRequest.appendParams(url)
         log.info("making request to {}", withParams)
         val connection = withParams.openConnection
         val is = connection.getInputStream
@@ -51,11 +63,11 @@ object HttpAnnounceClient {
           val bs = ByteString(baos.toByteArray)
 
           val responseOption = NormalTrackerResponse.parse(bs).orElse(FailureTrackerResponse.parse(bs))
-          responseOption map (respondTo ! _)
+
+          log.info("tracker responded with {}", responseOption)
+
+          responseOption map (response => respondTo ! ChildResponse(response, originalSender))
           
-        } catch {
-          case t: Throwable =>
-            log.error(t, t.getMessage)
         } finally {
           is.close()
         }
@@ -64,5 +76,7 @@ object HttpAnnounceClient {
   })
 
   case class Register(listener: ActorRef)
+  case class ChildRequest(request: TrackerRequest, originalSender: ActorRef)
+  case class ChildResponse(request: TrackerResponse, originalSender: ActorRef)
 
 }
