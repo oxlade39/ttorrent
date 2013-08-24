@@ -10,7 +10,6 @@ import com.turn.ttorrent.bcodec.{BEValue, BEncoder}
 import java.util
 import akka.util.ByteString
 import java.nio.ByteBuffer
-import com.oxlade39.github.storrent.announce.TrackerRequest
 import com.oxlade39.github.storrent.BMap
 import scala.Some
 
@@ -28,7 +27,7 @@ class AnnounceMessageSpec extends Specification {
         left = 10000,
         acceptCompact = true,
         noPeerId = false,
-        event = Stopped,
+        event = Some(Stopped),
         ip = Some(InetAddress.getByName("127.0.0.1"))
       )
 

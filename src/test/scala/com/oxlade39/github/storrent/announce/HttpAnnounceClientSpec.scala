@@ -23,7 +23,7 @@ class HttpAnnounceClientSpec extends Specification with TestFiles {
       val testTorrent = Torrent.fromFile(ubuntuTorrent)
 
       val request = TrackerRequest(testTorrent.infoHash, PeerId(), 6881, 0, 0, testTorrent.getSize,
-                                   acceptCompact = true, noPeerId = false, event = Started)
+                                   acceptCompact = true, noPeerId = false, event = Some(Started))
 
       val future = (underTest ? request).mapTo[NormalTrackerResponse]
       val result = Await.result(future, Duration(60, TimeUnit.SECONDS))

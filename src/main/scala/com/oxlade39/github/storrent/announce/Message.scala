@@ -48,7 +48,7 @@ case class TrackerRequest(
   left:           Long,
   acceptCompact:  Boolean,
   noPeerId:       Boolean,
-  event:          TrackerRequestEvent,
+  event:          Option[TrackerRequestEvent] = None,
   ip:             Option[InetAddress] = None,
   numWant:        Int = 50, //Optional. Number of peers that the client would like to receive from the tracker.
   key:            Option[String] = None,
@@ -77,7 +77,8 @@ case class TrackerRequest(
     appendParam("left", left.toString)
     appendParam("compact", (if(acceptCompact) 1 else 0).toString)
     appendParam("no_peer_id", (if(noPeerId) 1 else 0).toString)
-    appendParam("event", event.encode)
+
+    event.foreach(event => appendParam("event", event.encode))
 
     ip.map(address => appendParam("ip", address.getHostAddress))
     key.map(k => appendParam("key", k))

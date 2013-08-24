@@ -3,10 +3,11 @@ package com.oxlade39.github.storrent.peer
 import akka.actor._
 import akka.io.{Tcp, IO}
 import com.oxlade39.github.storrent.Peer
-import com.oxlade39.github.storrent.peer.PeerTracking.PeerAnnounced
 
 object PeerTracking {
-  case class PeerAnnounced(peer: Peer)
+  def props = Props(new PeerTracking)
+
+  case class PeersAnnounced(peers: List[Peer])
 }
 
 /**
@@ -19,15 +20,15 @@ class PeerTracking
   var knownPeers = Set.empty[Peer]
 
   import context.system
+  import PeerTracking._
 
   def receive = {
-    case PeerAnnounced(p) if knownPeers.contains(p) ⇒ {
-      log.info("received already known peer {}", p)
-    }
-
-    case PeerAnnounced(p) ⇒ {
-      log.info("received peer we've not seen before {}", p)
-      handleNewPeer(p)
+    case PeersAnnounced(p) ⇒ {
+      p.filterNot(knownPeers.contains) foreach { newPeer =>
+        log.debug("received peer we've not seen before {}", p)
+        handleNewPeer(newPeer)
+      }
+      log.info("Now seen {} peers", knownPeers.size)
     }
   }
 

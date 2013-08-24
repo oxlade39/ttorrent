@@ -14,7 +14,7 @@ import scala.concurrent.duration.Duration
 class HandshakerSpec extends Specification with TestFiles {
 
   // TODO, manual test for now
-  skipAll
+//  skipAll
 
   "Handshaker" should {
     "attempt handshake with peer" in {
@@ -29,7 +29,7 @@ class HandshakerSpec extends Specification with TestFiles {
       val announceClient = sys.actorOf(HttpAnnounceClient.props(new URI("http://torrent.ubuntu.com:6969/announce")))
       val localPeerId = PeerId()
       val request = TrackerRequest(testTorrent.infoHash, localPeerId, 6881, 0, 0, testTorrent.getSize,
-        acceptCompact = true, noPeerId = false, event = Started)
+        acceptCompact = true, noPeerId = false, event = Some(Started))
 
       val future = (announceClient ? request).mapTo[NormalTrackerResponse]
       val result = Await.result(future, Duration(60, TimeUnit.SECONDS))
@@ -39,7 +39,7 @@ class HandshakerSpec extends Specification with TestFiles {
 
       underTest ! aPeer
 
-      TimeUnit.MINUTES.sleep(10)
+      TimeUnit.MINUTES.sleep(2)
     }
   }
 
