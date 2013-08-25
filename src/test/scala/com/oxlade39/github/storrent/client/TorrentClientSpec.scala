@@ -22,8 +22,6 @@ class TorrentClientSpec extends Specification with TestFiles {
       val system = ActorSystem("testTorrentClient")
       val torrentClient = system.actorOf(TorrentClient.props(Peer(new InetSocketAddress(0))))
 
-
-
       val torrent = Torrent.fromFile(ubuntuTorrent)
       torrentClient ! TorrentClient.Download(torrent)
       system.scheduler.scheduleOnce(Duration(5, TimeUnit.MINUTES), torrentClient, TorrentClient.Cancel(torrent))

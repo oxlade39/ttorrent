@@ -1,12 +1,12 @@
 package com.oxlade39.github.storrent.client
 
 import akka.actor._
-import com.oxlade39.github.storrent.{Peer, Torrent}
+import com.oxlade39.github.storrent.{Handshake, Peer, Torrent}
 import com.oxlade39.github.storrent.announce.{Announcer, Started, TrackerRequest}
-import com.oxlade39.github.storrent.peer.PeerTracking
+import com.oxlade39.github.storrent.peer.{Handshaker, PeerTracking}
 import com.oxlade39.github.storrent.announce.TrackerRequest
 import scala.Some
-import com.oxlade39.github.storrent.Peer
+import com.oxlade39.github.storrent.peer.Handshaker.HandshakeWith
 
 object TorrentClient {
   def props(peer: Peer) = Props(new TorrentClient(peer))
@@ -51,8 +51,24 @@ class TorrentClient(clientPeer: Peer) extends Actor with ActorLogging {
   }
 
   def newAnnouncer(torrent: Torrent): TorrentDownloadContext = {
+
+    val connectedListener = context.actorOf(Props(new Actor with ActorLogging {
+      def receive = {
+        case PeerTracking.ConnectedPeer(connectedPeer, connection) => {
+          val handshaker =
+            context.actorOf(Handshaker.props(torrent.infoHash, clientPeer.id), "handshaker-%s".format(connectedPeer.hostAddress))
+          val handshakeWith = Handshaker.HandshakeWith(connection)
+          handshaker ! handshakeWith
+          log.info("sent {} to {}", HandshakeWith, handshaker)
+        }
+      }
+    }), "connectedListener-%s".format(torrent.getName))
+
     val peerTracking =
-      context.actorOf(PeerTracking.props, "peerTracking-%s".format(torrent.getName))
+      context.actorOf(PeerTracking.props(), "peerTracking-%s".format(torrent.getName))
+
+    peerTracking ! PeerTracking.RegisterConnectedPeerListener(connectedListener)
+
     val announcer =
       context.actorOf(Announcer.props(peerTracking), "announcer-%s".format(torrent.getName))
 

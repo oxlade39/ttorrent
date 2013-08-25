@@ -3,13 +3,13 @@ package com.oxlade39.github.storrent.peer
 import akka.util.ByteString
 import com.oxlade39.github.storrent.{Handshake, PeerId}
 import akka.actor._
-import akka.io.{IO, Tcp}
-import java.net.InetSocketAddress
+import akka.io.Tcp
 import scala.Some
-import com.oxlade39.github.storrent.Peer
 
 object Handshaker {
   def props(infoHash: ByteString, localPeerId: PeerId) = Props(new Handshaker(infoHash, localPeerId))
+
+  case class HandshakeWith(connection: ActorRef)
 
   sealed trait Data
   case object Empty extends Data
@@ -22,9 +22,9 @@ object Handshaker {
 
   trait State
   case object Unconnected extends State
-  case object Connecting extends State
   case object HandshakeSent extends State
   case object HandshakeFail extends State
+  case object HandshakeSuccess extends State
 }
 
 class Handshaker(infoHash: ByteString, peerId: PeerId)
@@ -33,19 +33,12 @@ class Handshaker(infoHash: ByteString, peerId: PeerId)
   with ActorLogging {
 
   import Handshaker._
-  import context.system
+  import concurrent.duration._
 
   startWith(Unconnected, Empty)
 
   when(Unconnected) {
-    case Event(Peer(address, id), Empty) ⇒ connect(address)
-  }
-
-  when(Connecting) {
-    case Event(Tcp.Connected(remoteAddress, localAddress), Empty) ⇒ {
-      log.info("now connected to {} on {}", remoteAddress, localAddress)
-      sendHandshake(sender)
-    }
+    case Event(HandshakeWith(connection), Empty) ⇒ sendHandshake(connection)
   }
 
   when(HandshakeSent) {
@@ -57,8 +50,8 @@ class Handshaker(infoHash: ByteString, peerId: PeerId)
 
       Handshake.parse(bytesForHandshake) match {
         case Some(success) ⇒  {
-          log.debug("successful handshake {}", success)
-          stop(FSM.Normal, r.copy(bytes = leftOver))
+          log.info("successful handshake {}", success)
+          goto(HandshakeSuccess) using r.copy(bytes = leftOver)
         }
         case None ⇒ {
           log.error("handshaking failed. bytesForHandshake: [{}] leftOver: [{}]", bytesForHandshake.utf8String, leftOver.utf8String)
@@ -67,6 +60,12 @@ class Handshaker(infoHash: ByteString, peerId: PeerId)
       }
     }
   }
+
+  when(HandshakeSuccess, stateTimeout = 1.milli) {
+    case Event(StateTimeout, data) => stop(FSM.Normal, data)
+  }
+
+  when(HandshakeFail)(FSM.NullFunction)
 
   onTransition {
     case _ -> HandshakeFail ⇒ stateData match {
@@ -92,11 +91,6 @@ class Handshaker(infoHash: ByteString, peerId: PeerId)
   }
 
   initialize()
-
-  def connect(address: InetSocketAddress)(implicit system: ActorSystem) = {
-    IO(Tcp) ! Tcp.Connect(address)
-    goto(Connecting)
-  }
 
   def sendHandshake(peer: ActorRef) = {
     val handshake: ByteString = Handshake(infoHash, peerId).encoded

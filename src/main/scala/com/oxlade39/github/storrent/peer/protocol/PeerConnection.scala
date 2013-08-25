@@ -1,98 +1,71 @@
 package com.oxlade39.github.storrent.peer.protocol
 
-import akka.actor.{ActorRef, FSM, ActorLogging, Actor}
+import akka.actor._
 import com.oxlade39.github.storrent.{Choke, UnChoke, Peer}
+import akka.io.Tcp
+import com.oxlade39.github.storrent.Peer
+import akka.io
 
 /**
  * @author dan
  */
-class PeerConnection
+class PeerConnection(peer: Peer)
   extends Actor
-  with FSM[PeerConnection.PeerConnectionState, PeerConnection.Data]
+  with FSM[PeerConnection.State, PeerConnection.Data]
   with ActorLogging {
 
   import PeerConnection._
+  import concurrent.duration._
+  import context._
 
-  startWith(AmChokingPeerChoking, Uninitialized)
+  io.IO(Tcp) ! Tcp.Connect(peer.address)
 
-  when(AmChokingPeerChoking) {
-    case Event(cp @ ConnectedPeer(p), Uninitialized) => stay using cp
-    case Event(UnChoke, cp @ ConnectedPeer(peer)) => goto(AmChokingPeerInterested) using cp
-  }
+  startWith(AttemptingToConnect, NoConnection)
 
-  when(AmInterestedPeerChoking) {
-    case Event(Choke, cp @ ConnectedPeer(peer)) => {
-      peer ! Choke
-      goto(AmChokingPeerChoking) using cp
+  when(AttemptingToConnect) {
+    case Event(Tcp.Connected(remote, local), NoConnection) => {
+      log.info("{} is now connected with {} on {}", peer, remote, local)
+      goto(Connected) using ConnectedWith(sender)
+    }
+
+    case Event(Tcp.Aborted | Tcp.Closed | Tcp.CommandFailed | Tcp.ErrorClosed | Tcp.PeerClosed, NoConnection) => {
+      log.info("{} errored while waiting for connection response", peer)
+      goto(Disconnected)
     }
   }
 
-  when(AmInterestedPeerInterested) {
-    case Event(Choke, cp @ ConnectedPeer(peer)) => {
-      peer ! Choke
-      goto(AmChokingPeerInterested) using cp
+  when(Connected) {
+    case Event(Tcp.Aborted | Tcp.Closed | Tcp.CommandFailed | Tcp.ErrorClosed | Tcp.PeerClosed, NoConnection) => {
+      log.info("{} errored while connected", peer)
+      goto(Disconnected)
     }
   }
 
+  when(Disconnected, 30.seconds) {
+    case Event(StateTimeout, data) => {
+      log.info("{} connection actor is stopping after disconnection", peer)
+      stop()
+    }
+  }
+
+  onTransition {
+    case a -> b => log.info("{} transitioning from {} to {}", self, a, b)
+  }
+
+  initialize()
 }
 
 object PeerConnection {
-  sealed class PeerConnectionState(client: State, peer: State)
+  def props(peer: Peer) = Props(new PeerConnection(peer))
 
   sealed trait Data
-  case object Uninitialized extends Data
-  case class ConnectedPeer(peer: ActorRef) extends Data
 
-  sealed trait Side
-  object ClientSide extends Side
-  object PeerSide extends Side
+  case object NoConnection extends Data
+  case class ConnectedWith(connection: ActorRef) extends Data
 
-  sealed trait ClientPeerState
+  sealed trait State
 
-  case object Choked extends ClientPeerState
-  case object Interested extends ClientPeerState
-
-  sealed trait State {
-    def side: Side
-    def state: ClientPeerState
-  }
-
-  /**
-   *  this client is choking the peer
-   */
-  case object AmChoking extends State {
-    def side = PeerSide
-    def state = Choked
-  }
-
-  /**
-   * this client is interested in the peer
-   */
-  case object AmInterested extends State {
-    def side = ClientSide
-    def state = Interested
-  }
-
-  /**
-   * peer is choking this client
-   */
-  case object PeerChoking extends State {
-    def side = ClientSide
-    def state = Choked
-  }
-
-  /**
-   * peer is interested in this client
-   */
-  case object PeerInterested extends State {
-    def side = PeerSide
-    def state = Interested
-  }
-
-  case object AmChokingPeerChoking extends PeerConnectionState(AmChoking, PeerChoking)
-  case object AmChokingPeerInterested extends PeerConnectionState(AmChoking, PeerInterested)
-
-  case object AmInterestedPeerChoking extends PeerConnectionState(AmInterested, PeerChoking)
-  case object AmInterestedPeerInterested extends PeerConnectionState(AmInterested, PeerInterested)
-
+  case object AttemptingToConnect extends State
+  case object Connected extends State
+  case object Disconnected extends State
 }
