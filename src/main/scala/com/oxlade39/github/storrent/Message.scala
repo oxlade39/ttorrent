@@ -98,8 +98,27 @@ case class Bitfield(bitfield: Seq[Boolean]) extends Message {
 }
 
 object BitOps {
+  def asBooleans(withoutSignExt: Seq[Int]):Seq[Boolean] = {
+    withoutSignExt.flatMap{ i =>
+      0.until(8).reverse.map(j => (i & (1<<j)) != 0)
+    }
+  }
+
+  def isSet(byte: Byte, i: Int): Boolean = {
+    val shifted: Int = byte >> i
+    val mask: Int = 1
+    val masked = shifted & mask
+    masked == 1
+  }
+
+  implicit def richByte(b: Byte): RichByte = new RichByte(b)
+
   lazy val bitMasks: Seq[Int] = 0.to(7).reverse.map(i => 1 << i)
   def toHex(buf: Array[Byte]): String = buf.map("%02X" format _).mkString
+}
+
+class RichByte(b: Byte) {
+  def isSet(bitIndex: Int) = BitOps.isSet(b, bitIndex)
 }
 
 case class Request(index: Int, begin: Int, requestLength: Int) extends Message {

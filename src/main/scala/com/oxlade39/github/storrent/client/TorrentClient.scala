@@ -1,12 +1,13 @@
 package com.oxlade39.github.storrent.client
 
 import akka.actor._
-import com.oxlade39.github.storrent.{Handshake, Peer, Torrent}
-import com.oxlade39.github.storrent.announce.{Announcer, Started, TrackerRequest}
+import com.oxlade39.github.storrent.{Peer, Torrent}
+import com.oxlade39.github.storrent.announce.{Announcer, Started}
 import com.oxlade39.github.storrent.peer.{Handshaker, PeerTracking}
 import com.oxlade39.github.storrent.announce.TrackerRequest
 import scala.Some
 import com.oxlade39.github.storrent.peer.Handshaker.HandshakeWith
+import com.oxlade39.github.storrent.peer.protocol.ClientProtocol
 
 object TorrentClient {
   def props(peer: Peer) = Props(new TorrentClient(peer))
@@ -60,6 +61,12 @@ class TorrentClient(clientPeer: Peer) extends Actor with ActorLogging {
           val handshakeWith = Handshaker.HandshakeWith(connection)
           handshaker ! handshakeWith
           log.info("sent {} to {}", HandshakeWith, handshaker)
+          handshaker ! FSM.SubscribeTransitionCallBack(self)
+        }
+
+        case FSM.Transition(handshaker, oldState, Handshaker.HandshakeSuccess) => {
+          val clientProtocol =
+            context.actorOf(ClientProtocol.props)
         }
       }
     }), "connectedListener-%s".format(torrent.getName))

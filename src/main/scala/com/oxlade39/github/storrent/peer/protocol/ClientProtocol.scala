@@ -1,10 +1,12 @@
 package com.oxlade39.github.storrent.peer.protocol
 
-import akka.actor.{ActorRef, Actor, ActorLogging, FSM}
+import akka.actor._
 import com.oxlade39.github.storrent._
 
 
 object ClientProtocol {
+  def props = Props(new ClientProtocol)
+
   sealed trait Data
   case object Uninitialised extends Data
   case class SetPeer(peer: ActorRef)

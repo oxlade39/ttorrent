@@ -14,7 +14,7 @@ import scala.concurrent.duration.Duration
 class HandshakerSpec extends Specification with TestFiles {
 
   // TODO, manual test for now
-//  skipAll
+  skipAll
 
   "Handshaker" should {
     "attempt handshake with peer" in {
