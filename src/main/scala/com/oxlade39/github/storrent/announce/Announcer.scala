@@ -19,7 +19,7 @@ class Announcer(peerTracking: ActorRef) extends Actor with ActorLogging {
   import context._
 
   def receive = {
-    case Announcer.StartAnnouncing(request, trackers) => {
+    case Announcer.StartAnnouncing(request, trackers) ⇒ {
       val child: ActorRef = context.actorOf(MultiTrackerExtension.props(trackers))
       child ! request
       context.become(announcing(child, request))
@@ -27,7 +27,7 @@ class Announcer(peerTracking: ActorRef) extends Actor with ActorLogging {
   }
 
   def announcing(multiTrackerExtension: ActorRef, request: TrackerRequest): Receive = {
-    case response: NormalTrackerResponse => {
+    case response: NormalTrackerResponse ⇒ {
       log.info("response {}", response)
 
       peerTracking ! PeerTracking.PeersAnnounced(response.peers)
@@ -39,13 +39,13 @@ class Announcer(peerTracking: ActorRef) extends Actor with ActorLogging {
                                                          event = None))
     }
 
-    case Announcer.StopAnnouncing => {
+    case Announcer.StopAnnouncing ⇒ {
       multiTrackerExtension ! request.copy(event = Some(Stopped))
       log.info("stopping {} due to stop request", self)
       context.stop(self)
     }
 
-    case Announcer.Finished => {
+    case Announcer.Finished ⇒ {
       multiTrackerExtension ! request.copy(event = Some(Completed))
       log.info("stopping {} due to being finished", self)
       context.stop(self)

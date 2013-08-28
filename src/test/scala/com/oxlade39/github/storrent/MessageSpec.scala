@@ -48,7 +48,7 @@ class MessageSpec extends Specification {
       set.set(16)
       set.set(17)
       set.set(18)
-      test(BitfieldMessage.craft(set), Bitfield(0.to(19).map(_ => false))
+      test(BitfieldMessage.craft(set), Bitfield(0.to(19).map(_ ⇒ false))
                                           .set(0)
                                           .set(2)
                                           .set(7)

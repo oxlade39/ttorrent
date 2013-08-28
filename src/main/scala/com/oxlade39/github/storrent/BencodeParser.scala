@@ -19,12 +19,12 @@ object BencodeParser {
     if (bytes.isEmpty) accum.map(List(_)).getOrElse(Nil)
     else
       bytes.head match {
-        case 'i' => parseInt(bytes, accum)
-        case d if digits.contains(d.toChar) => parseBinary(bytes, accum)
-        case 'l' => parseList(bytes, accum)
-        case 'd' => parseDictionary(bytes, accum)
+        case 'i' ⇒ parseInt(bytes, accum)
+        case d if digits.contains(d.toChar) ⇒ parseBinary(bytes, accum)
+        case 'l' ⇒ parseList(bytes, accum)
+        case 'd' ⇒ parseDictionary(bytes, accum)
 
-        case _ => {
+        case _ ⇒ {
           if (!bytes.isEmpty) logger.warn("not matched but there are still bytes: {}", bytes.utf8String)
           accum.map(List(_)).getOrElse(Nil)
         }
@@ -32,7 +32,7 @@ object BencodeParser {
   }
 
   private[this] def parseInt(bytes: ByteString, accum: Option[BValue]): List[BValue] = {
-    val rest = bytes.tail.takeWhile(b => b != 'e')
+    val rest = bytes.tail.takeWhile(b ⇒ b != 'e')
     if (rest.equals(ByteString('-'))) Nil
     else if (rest.equals(ByteString("-0"))) Nil
     else {
@@ -47,7 +47,7 @@ object BencodeParser {
   }
 
   private[this] def parseBinary(bytes: ByteString, accum: Option[BValue]): List[BValue] = {
-    val lengthB = bytes.takeWhile(i => digits.contains(i))
+    val lengthB = bytes.takeWhile(i ⇒ digits.contains(i))
     val length = Integer.parseInt(lengthB.utf8String)
     val bytesSection = bytes.tail.drop(lengthB.size).take(length)
     val leftOver = bytes.tail.drop(lengthB.size + length)
@@ -59,7 +59,7 @@ object BencodeParser {
   }
 
   private[this] def parseList(bytes: ByteString, accum: Option[BValue]): List[BValue] = {
-    val innerBytes = bytes.tail.drop(1).takeWhile(b => !identifiers.contains(b))
+    val innerBytes = bytes.tail.drop(1).takeWhile(b ⇒ !identifiers.contains(b))
     val rest = bytes.tail.drop(innerBytes.size + 1)
     val values: List[BValue] = p2(ByteString(bytes.tail.head) ++ innerBytes, None) ::: p2(rest.slice(0, rest.size - 1), accum)
     List(BList(values: _*))
@@ -71,7 +71,7 @@ object BencodeParser {
     val tail: ByteString = bytes.tail
     val inner: List[BValue] = p2(tail.slice(0, tail.size - 1), None)
     val dic = inner.grouped(2).foldLeft(Map.empty[BBytes, BValue]) {
-      case (map, List(bs@BBytes(x), value)) => map + (bs -> value)
+      case (map, List(bs@BBytes(x), value)) ⇒ map + (bs -> value)
     }
     List(BMap(dic))
   }

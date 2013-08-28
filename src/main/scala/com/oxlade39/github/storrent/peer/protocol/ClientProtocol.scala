@@ -55,23 +55,23 @@ class ClientProtocol
   when(State(peer = Status(Choked, UnInterested),
              client = Status(Choked, UnInterested))) {
 
-    case Event(SetPeer(peer), Uninitialised) => stay() using HasPeer(peer)
+    case Event(SetPeer(peer), Uninitialised) ⇒ stay() using HasPeer(peer)
 
-    case Event(Send(UnChoke), HasPeer(peer)) => {
+    case Event(Send(UnChoke), HasPeer(peer)) ⇒ {
       peer ! UnChoke
       goto(stateName.unchokePeer)
     }
 
-    case Event(Send(Interested), HasPeer(peer)) => {
+    case Event(Send(Interested), HasPeer(peer)) ⇒ {
       peer ! Interested
       goto(stateName.clientInterested)
     }
 
-    case Event(Received(Bitfield(pieces)), HasPeer(peer)) => {
+    case Event(Received(Bitfield(pieces)), HasPeer(peer)) ⇒ {
       stay()
     }
 
-    case Event(Received(UnChoke), HasPeer(peer)) => {
+    case Event(Received(UnChoke), HasPeer(peer)) ⇒ {
       log.info("We were UnChoked by our peer")
       goto(stateName.unchokeClient)
     }
@@ -80,12 +80,12 @@ class ClientProtocol
   when(State(peer = Status(UnChoked, UnInterested),
              client = Status(Choked, UnInterested))) {
 
-    case Event(Send(Choke), HasPeer(peer)) => {
+    case Event(Send(Choke), HasPeer(peer)) ⇒ {
       peer ! Choke
       goto(stateName.chokePeer)
     }
 
-    case Event(Send(Interested), HasPeer(peer)) => {
+    case Event(Send(Interested), HasPeer(peer)) ⇒ {
       peer ! Interested
       goto(stateName.clientInterested)
     }
@@ -95,12 +95,12 @@ class ClientProtocol
   when(State(peer = Status(Choked, IsInterested),
              client = Status(Choked, UnInterested))) {
 
-    case Event(Send(UnChoke), HasPeer(peer)) => {
+    case Event(Send(UnChoke), HasPeer(peer)) ⇒ {
       peer ! UnChoke
       goto(stateName.unchokePeer)
     }
 
-    case Event(Send(NotInterested), HasPeer(peer)) => {
+    case Event(Send(NotInterested), HasPeer(peer)) ⇒ {
       peer ! NotInterested
       goto(stateName.clientUnInterested)
     }
@@ -138,20 +138,20 @@ class PeerMessageProcessor(clientProtocol: ActorRef,
 
   def writeToConnection(toWrite: Try[ByteString]) {
     toWrite match {
-      case Failure(ex) => log.error(ex, "Exception in PeerMessageStage pipeline {}", ex.getMessage)
-      case Success(bytes) => peerComms ! PeerComms.Send(bytes)
+      case Failure(ex) ⇒ log.error(ex, "Exception in PeerMessageStage pipeline {}", ex.getMessage)
+      case Success(bytes) ⇒ peerComms ! PeerComms.Send(bytes)
     }
   }
 
   def sendToClientProtocol(toSend: Try[Message]) {
     toSend match {
-      case Failure(ex) => log.error(ex, "Exception in PeerMessageStage pipeline {}", ex.getMessage)
-      case Success(message) => clientProtocol ! ClientProtocol.Received(message)
+      case Failure(ex) ⇒ log.error(ex, "Exception in PeerMessageStage pipeline {}", ex.getMessage)
+      case Success(message) ⇒ clientProtocol ! ClientProtocol.Received(message)
     }
   }
 
   def receive = {
-    case m: Message => pipeline.injectCommand(m)
-    case PeerComms.Received(b) => pipeline.injectEvent(b)
+    case m: Message ⇒ pipeline.injectCommand(m)
+    case PeerComms.Received(b) ⇒ pipeline.injectEvent(b)
   }
 }

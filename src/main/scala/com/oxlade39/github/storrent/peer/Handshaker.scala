@@ -62,7 +62,7 @@ class Handshaker(infoHash: ByteString, peerId: PeerId)
   }
 
   when(HandshakeSuccess, stateTimeout = 1.milli) {
-    case Event(StateTimeout, data) => stop(FSM.Normal, data)
+    case Event(StateTimeout, data) ⇒ stop(FSM.Normal, data)
   }
 
   when(HandshakeFail)(FSM.NullFunction)

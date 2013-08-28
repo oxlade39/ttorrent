@@ -32,14 +32,14 @@ class TorrentClient(clientPeer: Peer) extends Actor with ActorLogging {
   var downloads = Map.empty[Torrent, TorrentDownloadContext]
 
   def receive = {
-    case Download(t) if !downloads.contains(t) => {
+    case Download(t) if !downloads.contains(t) ⇒ {
       log.info("requested torrent {}", t.getName)
       val announcer = newAnnouncer(t)
       downloads += t -> announcer
       log.info("now announcing {} on {}", t.getName, announcer)
     }
 
-    case Cancel(t) => {
+    case Cancel(t) ⇒ {
       log.info("cancelling torrent download for {}", t.getName)
       if (downloads.contains(t)) {
           val ctx: TorrentDownloadContext = downloads(t)

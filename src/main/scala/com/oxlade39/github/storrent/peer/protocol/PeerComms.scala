@@ -64,7 +64,7 @@ object PeerComms {
    */
   def factory(torrent: Torrent, localPeer: Peer) = Props(new Actor with ActorLogging {
     def receive = {
-      case connected: PeerTracking.ConnectedPeer => {
+      case connected: PeerTracking.ConnectedPeer ⇒ {
         val address = connected.peer.hostAddress
         val comms =
           context.actorOf(props(torrent, localPeer), s"peerComms-$address")

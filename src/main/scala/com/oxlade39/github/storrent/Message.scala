@@ -12,10 +12,10 @@ sealed trait Message {
   def payload: Option[ByteString]
 
   private [this] lazy val messageIdBytes: ByteString =
-    messageId.map(mId => ByteString(mId.toByte)).getOrElse(ByteString.empty)
+    messageId.map(mId ⇒ ByteString(mId.toByte)).getOrElse(ByteString.empty)
 
   private [this] lazy val payloadBytes: ByteString =
-    payload.map(p => p).getOrElse(ByteString.empty)
+    payload.map(p ⇒ p).getOrElse(ByteString.empty)
 
   lazy val encode: ByteString =
     ByteString(ByteBuffer.allocate(4).putInt(length).array()) ++
@@ -81,8 +81,8 @@ case class Bitfield(bitfield: Seq[Boolean]) extends Message {
   lazy val length = 1 + Math.ceil(bitfield.size.toDouble / 8).toInt
 
   lazy val payload: Option[ByteString] = {
-    val str = bitfield.grouped(8).foldLeft(ByteString()){(accum, byte: Seq[Boolean]) =>
-      val toAdd = byte.zipWithIndex.foldLeft(0.toByte)((byte, bit) =>
+    val str = bitfield.grouped(8).foldLeft(ByteString()){(accum, byte: Seq[Boolean]) ⇒
+      val toAdd = byte.zipWithIndex.foldLeft(0.toByte)((byte, bit) ⇒
         if (bit._1)
           (byte | BitOps.bitMasks(bit._2)).toByte
         else
@@ -104,8 +104,8 @@ case class Bitfield(bitfield: Seq[Boolean]) extends Message {
 
 object BitOps {
   def asBooleans(withoutSignExt: Seq[Int]):Seq[Boolean] = {
-    withoutSignExt.flatMap{ i =>
-      0.until(8).reverse.map(j => (i & (1<<j)) != 0)
+    withoutSignExt.flatMap{ i ⇒
+      0.until(8).reverse.map(j ⇒ (i & (1<<j)) != 0)
     }
   }
 
@@ -118,7 +118,7 @@ object BitOps {
 
   implicit def richByte(b: Byte): RichByte = new RichByte(b)
 
-  lazy val bitMasks: Seq[Int] = 0.to(7).reverse.map(i => 1 << i)
+  lazy val bitMasks: Seq[Int] = 0.to(7).reverse.map(i ⇒ 1 << i)
   def toHex(buf: Array[Byte]): String = buf.map("%02X" format _).mkString
 }
 

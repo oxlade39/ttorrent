@@ -2,7 +2,7 @@ package com.oxlade39.github.storrent
 
 import org.specs2.mutable.Specification
 import java.io.File
-import com.turn.ttorrent.common.{Torrent => OldTorrent}
+import com.turn.ttorrent.common.{Torrent ⇒ OldTorrent}
 import akka.util.ByteString
 import java.net.URI
 import com.oxlade39.github.storrent.test.util.TestFiles

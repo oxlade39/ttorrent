@@ -8,8 +8,8 @@ import scala.Some
 import org.slf4j.LoggerFactory
 
 sealed trait Message {
-  def urlEncode: String => String = s => URLEncoder.encode(s, Torrent.encoding)
-  def urlEncodeB: ByteString => String = b => urlEncode(b.decodeString(Torrent.encoding))
+  def urlEncode: String ⇒ String = s ⇒ URLEncoder.encode(s, Torrent.encoding)
+  def urlEncodeB: ByteString ⇒ String = b ⇒ urlEncode(b.decodeString(Torrent.encoding))
 }
 
 sealed trait TrackerRequestEvent {
@@ -78,11 +78,11 @@ case class TrackerRequest(
     appendParam("compact", (if(acceptCompact) 1 else 0).toString)
     appendParam("no_peer_id", (if(noPeerId) 1 else 0).toString)
 
-    event.foreach(event => appendParam("event", event.encode))
+    event.foreach(event ⇒ appendParam("event", event.encode))
 
-    ip.map(address => appendParam("ip", address.getHostAddress))
-    key.map(k => appendParam("key", k))
-    trackerId.map(tid => appendParam("trackerid", tid))
+    ip.map(address ⇒ appendParam("ip", address.getHostAddress))
+    key.map(k ⇒ appendParam("key", k))
+    trackerId.map(tid ⇒ appendParam("trackerid", tid))
 
     new URL(builder.toString())
   }
@@ -107,15 +107,15 @@ object NormalTrackerResponse {
     logger.trace("parsing {}", bytes.utf8String)
 
     BencodeParser.parse(bytes) match {
-      case Some(BMap(values)) if values.contains(BBytes("peers")) => {
+      case Some(BMap(values)) if values.contains(BBytes("peers")) ⇒ {
 
         val p1 = values(BBytes("peers"))
         val asBytes = p1 match {
-          case BBytes(bs) => Some(bs.toArray)
-          case _ => None
+          case BBytes(bs) ⇒ Some(bs.toArray)
+          case _ ⇒ None
         }
 
-        def bytesToPeers: Array[Byte] => Iterator[Peer] = bytes => bytes.grouped(6).map{ b =>
+        def bytesToPeers: Array[Byte] ⇒ Iterator[Peer] = bytes ⇒ bytes.grouped(6).map{ b ⇒
           val ip = InetAddress.getByAddress(b.take(4).toArray)
           val port = (0xFF & b.drop(4).head) << 8 | (0xFF & b.drop(5).head)
           val address = new InetSocketAddress(ip, port)
@@ -123,18 +123,18 @@ object NormalTrackerResponse {
         }
 
         def requiredInt(key: String) = values(BBytes(key)) match {
-          case BInt(i) => Some(i)
-          case _ => None
+          case BInt(i) ⇒ Some(i)
+          case _ ⇒ None
         }
 
         def optionalInt(key: String) = values.get(BBytes(key)) flatMap {
-          case BInt(i) => Some(i)
-          case _ => None
+          case BInt(i) ⇒ Some(i)
+          case _ ⇒ None
         }
 
         def optionalString(key: String) = values.get(BBytes(key)) flatMap {
-          case BBytes(s) => Some(s.utf8String)
-          case _ => None
+          case BBytes(s) ⇒ Some(s.utf8String)
+          case _ ⇒ None
         }
 
         for {
@@ -150,7 +150,7 @@ object NormalTrackerResponse {
                                       peers.toList,
                                       optionalString("warning message"))
       }
-      case x  => None
+      case x  ⇒ None
     }
   }
 }
@@ -159,10 +159,10 @@ case class FailureTrackerResponse(failure: String) extends TrackerResponse
 
 object FailureTrackerResponse {
   def parse(bytes: ByteString): Option[FailureTrackerResponse] = BencodeParser.parse(bytes) match {
-    case Some(BMap(values)) => values.get(BBytes("failure reason")).flatMap {
-      case BBytes(x) => Some(FailureTrackerResponse(x.decodeString(Torrent.encoding)))
-      case _ => None
+    case Some(BMap(values)) ⇒ values.get(BBytes("failure reason")).flatMap {
+      case BBytes(x) ⇒ Some(FailureTrackerResponse(x.decodeString(Torrent.encoding)))
+      case _ ⇒ None
     }
-    case _ => None
+    case _ ⇒ None
   }
 }

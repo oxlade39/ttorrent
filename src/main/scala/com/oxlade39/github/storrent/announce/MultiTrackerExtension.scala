@@ -25,7 +25,7 @@ class MultiTrackerExtension(announceUrls: List[List[URI]])
    * tracker is successful, it will be moved to the front of the tier
    *
    */
-  var trackerTiers: TrackerHierarchy = TrackerHierarchy(announceUrls.map { trackerUrls =>
+  var trackerTiers: TrackerHierarchy = TrackerHierarchy(announceUrls.map { trackerUrls ⇒
     TrackerTier(trackerUrls).shuffle
   })
 
@@ -35,8 +35,8 @@ class MultiTrackerExtension(announceUrls: List[List[URI]])
     context.watch(context.actorOf(HttpAnnounceClient.props(trackerTiers.current)))
 
   def receive = {
-    case request: TrackerRequest => currentTracker.forward(request)
-    case Terminated(client) => {
+    case request: TrackerRequest ⇒ currentTracker.forward(request)
+    case Terminated(client) ⇒ {
       log.info("client actor {} terminated so moving on to next client", client)
       trackerTiers = trackerTiers.next
       currentTracker = newTracker
@@ -50,12 +50,12 @@ case class TrackerHierarchy(tiers: List[TrackerTier]) {
   def current = tiers.head.current
 
   def next: TrackerHierarchy = tiers match {
-    case head :: rest if head.trackers.size > 1 => copy(head.nextTracker :: rest)
+    case head :: rest if head.trackers.size > 1 ⇒ copy(head.nextTracker :: rest)
     /**
      * this is O(n) due to moving head to the tail
      * TODO improve me
      */
-    case head :: rest => copy(rest :+ head.reset)
+    case head :: rest ⇒ copy(rest :+ head.reset)
   }
 }
 

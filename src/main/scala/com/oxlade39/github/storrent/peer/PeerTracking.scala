@@ -21,13 +21,13 @@ object PeerTracking {
   case class UnconnectedPeer(peer: Peer) extends TrackedPeer
 
   private[PeerTracking] def isConnected(trackedPeer: TrackedPeer) = trackedPeer match {
-    case ConnectedPeer(_, _) => true
-    case _ => false
+    case ConnectedPeer(_, _) ⇒ true
+    case _ ⇒ false
   }
 
   private[PeerTracking] def isPending(trackedPeer: TrackedPeer) = trackedPeer match {
-    case AwaitingConnectionPeer(_) => true
-    case _ => false
+    case AwaitingConnectionPeer(_) ⇒ true
+    case _ ⇒ false
   }
 }
 
@@ -55,17 +55,17 @@ class PeerTracking(maxConnections: Int)
   def receive = {
     case PeersAnnounced(p) ⇒ {
       val knownPeers = allKnownPeers
-      p.filterNot(knownPeers.contains) foreach { newPeer =>
+      p.filterNot(knownPeers.contains) foreach { newPeer ⇒
         log.debug("received peer we've not seen before {}", p)
         handleNewPeer(newPeer)
       }
       log.info("Now seen {} peers", knownPeers.size)
     }
 
-    case Tcp.Connected(remoteAddress, localAddress) => {
+    case Tcp.Connected(remoteAddress, localAddress) ⇒ {
       val peerConnection = sender
       log.info("{} is now connected on {} by {}", remoteAddress, localAddress, peerConnection)
-      awaitingConnection.find(_.peer.address.equals(remoteAddress)) map { trackedPeer =>
+      awaitingConnection.find(_.peer.address.equals(remoteAddress)) map { trackedPeer ⇒
         log.info("{} mapped to {}", peerConnection, trackedPeer)
         trackedPeers -= trackedPeer.peer
         val connectedPeer = ConnectedPeer(trackedPeer.peer, peerConnection)
@@ -74,7 +74,7 @@ class PeerTracking(maxConnections: Int)
       }
     }
 
-    case RegisterConnectedPeerListener(listener) => listeners = listener :: listeners
+    case RegisterConnectedPeerListener(listener) ⇒ listeners = listener :: listeners
   }
 
   def handleNewPeer(peer: Peer)(implicit system: ActorSystem) {

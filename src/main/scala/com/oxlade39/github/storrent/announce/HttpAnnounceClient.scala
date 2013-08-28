@@ -3,7 +3,6 @@ package com.oxlade39.github.storrent.announce
 import akka.actor._
 import java.net.{MalformedURLException, URI}
 import java.io.IOException
-import scala.io.Source
 import akka.util.ByteString
 import org.apache.commons.io.output.ByteArrayOutputStream
 
@@ -27,21 +26,21 @@ class HttpAnnounceClient(trackerUri: URI)
     }
 
   def receive = {
-    case HttpAnnounceClient.Register(actor) => listeners :+= actor
-    case r: TrackerRequest => {
+    case HttpAnnounceClient.Register(actor) ⇒ listeners :+= actor
+    case r: TrackerRequest ⇒ {
       val replyTo = sender
       child ! HttpAnnounceClient.ChildRequest(r, replyTo)
     }
-    case HttpAnnounceClient.ChildResponse(response, originalSender) => {
+    case HttpAnnounceClient.ChildResponse(response, originalSender) ⇒ {
       response match {
-        case normal: NormalTrackerResponse => originalSender ! normal
-        case fail: FailureTrackerResponse => {
+        case normal: NormalTrackerResponse ⇒ originalSender ! normal
+        case fail: FailureTrackerResponse ⇒ {
           log.info("{} so stopping {}", fail, self)
           context.stop(self)
         }
       }
     }
-    case Terminated(c) => child = context.watch(context.actorOf(HttpAnnounceClient.child(trackerUri)))
+    case Terminated(c) ⇒ child = context.watch(context.actorOf(HttpAnnounceClient.child(trackerUri)))
   }
 }
 
@@ -50,7 +49,7 @@ object HttpAnnounceClient {
 
   private[HttpAnnounceClient] def child(trackerUri: URI): Props = Props(new Actor with ActorLogging {
     def receive = {
-      case ChildRequest(originalRequest, originalSender) => {
+      case ChildRequest(originalRequest, originalSender) ⇒ {
         val respondTo = sender
         val url = trackerUri.toURL
         val withParams = originalRequest.appendParams(url)
@@ -66,7 +65,7 @@ object HttpAnnounceClient {
 
           log.info("tracker responded with {}", responseOption)
 
-          responseOption map (response => respondTo ! ChildResponse(response, originalSender))
+          responseOption map (response ⇒ respondTo ! ChildResponse(response, originalSender))
           
         } finally {
           is.close()

@@ -22,12 +22,12 @@ case class BList(values: BValue*) extends BValue{
   val startDelimiter = ByteString("l")
   val endDelimiter = ByteString("e")
 
-  lazy val encode = values.foldLeft(startDelimiter)((accum, value) => accum ++ value.encode) ++ endDelimiter
+  lazy val encode = values.foldLeft(startDelimiter)((accum, value) ⇒ accum ++ value.encode) ++ endDelimiter
 }
 case class BMap(values: Map[BBytes, BValue]) extends BValue {
   val startDelimiter = ByteString("d")
   val endDelimiter = ByteString("e")
 
   lazy val encode = values.toSeq.sortBy(_._1.value.utf8String).foldLeft(startDelimiter)(
-    (accum, kv) => accum ++ kv._1.encode ++ kv._2.encode) ++ endDelimiter
+    (accum, kv) ⇒ accum ++ kv._1.encode ++ kv._2.encode) ++ endDelimiter
 }

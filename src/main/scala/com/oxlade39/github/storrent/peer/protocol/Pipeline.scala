@@ -59,51 +59,57 @@ class PeerMessageStage extends SymmetricPipelineStage[HasByteOrder, Message, Byt
 
       val bytes: ByteIterator = data.iterator
       val length = bytes.getLongPart(4).toInt
-      val messageId = bytes.getLongPart(1).toInt
 
-      messageId match {
-        case 0 ⇒ ctx.singleEvent(Choke)
-        case 1 ⇒ ctx.singleEvent(UnChoke)
-        case 2 ⇒ ctx.singleEvent(Interested)
-        case 3 ⇒ ctx.singleEvent(NotInterested)
-        case 4 ⇒ {
-          val pieceIndex: Int = bytes.getLongPart(4).toInt
-          ctx.singleEvent(Have(pieceIndex))
-        }
-        case 5 ⇒ {
-          // TODO
-          val xs: Array[Byte] = new Array[Byte](length - 1)
-          bytes.getBytes(xs)
-          val withoutSignExtention: Array[Int] = xs.map(_.toInt & 0xff)
-          val setBits: Seq[Boolean] = BitOps.asBooleans(withoutSignExtention)
-          ctx.singleEvent(Bitfield(setBits))
-        }
-        case 6 ⇒ {
-          val index: Int = bytes.getLongPart(4).toInt
-          val begin: Int = bytes.getLongPart(4).toInt
-          val requestLength: Int = bytes.getLongPart(4).toInt
-          ctx.singleEvent(Request(index, begin, requestLength))
-        }
-        case 7 ⇒ {
-          val pieceIndex: Int = 0
-          val begin: Int = 0
-          val blockBytes = new Array[Byte](length - 9)
-          bytes.getBytes(blockBytes)
-          ctx.singleEvent(Piece(pieceIndex, begin, ByteString(blockBytes)))
-        }
-        case 8 ⇒ {
-          val index: Int = bytes.getLongPart(4).toInt
-          val begin: Int = bytes.getLongPart(4).toInt
-          val requestLength: Int = bytes.getLongPart(4).toInt
-          ctx.singleEvent(Cancel(index, begin, requestLength))
-        }
-        case 9 ⇒ {
-          val port = bytes.getShort
-          ctx.singleEvent(Port(port))
-        }
-        case unkwown ⇒ {
-          buffer = Some(data)
-          Nil
+      if(bs.size < length) {
+        buffer = Some(data)
+        Nil
+      } else {
+        val messageId = bytes.getLongPart(1).toInt
+
+        messageId match {
+          case 0 ⇒ ctx.singleEvent(Choke)
+          case 1 ⇒ ctx.singleEvent(UnChoke)
+          case 2 ⇒ ctx.singleEvent(Interested)
+          case 3 ⇒ ctx.singleEvent(NotInterested)
+          case 4 ⇒ {
+            val pieceIndex: Int = bytes.getLongPart(4).toInt
+            ctx.singleEvent(Have(pieceIndex))
+          }
+          case 5 ⇒ {
+            // TODO
+            val xs: Array[Byte] = new Array[Byte](length - 1)
+            bytes.getBytes(xs)
+            val withoutSignExtention: Array[Int] = xs.map(_.toInt & 0xff)
+            val setBits: Seq[Boolean] = BitOps.asBooleans(withoutSignExtention)
+            ctx.singleEvent(Bitfield(setBits))
+          }
+          case 6 ⇒ {
+            val index: Int = bytes.getLongPart(4).toInt
+            val begin: Int = bytes.getLongPart(4).toInt
+            val requestLength: Int = bytes.getLongPart(4).toInt
+            ctx.singleEvent(Request(index, begin, requestLength))
+          }
+          case 7 ⇒ {
+            val pieceIndex: Int = 0
+            val begin: Int = 0
+            val blockBytes = new Array[Byte](length - 9)
+            bytes.getBytes(blockBytes)
+            ctx.singleEvent(Piece(pieceIndex, begin, ByteString(blockBytes)))
+          }
+          case 8 ⇒ {
+            val index: Int = bytes.getLongPart(4).toInt
+            val begin: Int = bytes.getLongPart(4).toInt
+            val requestLength: Int = bytes.getLongPart(4).toInt
+            ctx.singleEvent(Cancel(index, begin, requestLength))
+          }
+          case 9 ⇒ {
+            val port = bytes.getShort
+            ctx.singleEvent(Port(port))
+          }
+          case unknown ⇒ {
+            buffer = Some(data)
+            Nil
+          }
         }
       }
     }

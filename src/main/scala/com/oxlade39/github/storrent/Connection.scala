@@ -4,7 +4,6 @@ import akka.actor.{Props, Actor, ActorLogging}
 import akka.io.{Tcp, IO}
 import java.net.InetSocketAddress
 import akka.util.ByteString
-import java.util.UUID
 import akka.event.LoggingReceive
 import scala.collection.immutable.HashSet
 
@@ -18,14 +17,14 @@ class TorrentServer(bindAddress: InetSocketAddress) extends Actor with ActorLogg
   IO(Tcp) ! Tcp.Bind(self, bindAddress)
 
   def receive = {
-    case TorrentServer.Serve(t) => {
+    case TorrentServer.Serve(t) ⇒ {
       startServing(t)
       context.become(listening)
     }
   }
 
   def listening = LoggingReceive {
-    case Tcp.Connected(remote, _) => {
+    case Tcp.Connected(remote, _) ⇒ {
       val connection = sender
       val hostAddress = remote.getAddress.getHostAddress
 
@@ -35,7 +34,7 @@ class TorrentServer(bindAddress: InetSocketAddress) extends Actor with ActorLogg
       connection ! Tcp.Register(connectionHandler)
     }
 
-    case TorrentServer.Serve(t) => startServing(t)
+    case TorrentServer.Serve(t) ⇒ startServing(t)
   }
 
   def startServing(torrent: Torrent) {
@@ -62,7 +61,7 @@ class ClientConnectionHandler(localPeerId: PeerId,
   extends Actor with ActorLogging {
 
   lazy val torrentMap = knownTorrents.foldLeft(Map.empty[ByteString, Torrent])(
-    (accum, t) => accum + (t.infoHash -> t)
+    (accum, t) ⇒ accum + (t.infoHash -> t)
   )
   var buffer: ByteString = ByteString()
   var remotePeer = None: Option[Peer]
@@ -73,9 +72,9 @@ class ClientConnectionHandler(localPeerId: PeerId,
   def buffer(data: ByteString): Unit = buffer ++= data
 
   def buffering: Receive = {
-    case Tcp.Received(data) if bytesRequiredForHandshake > data.size => buffer(data)
+    case Tcp.Received(data) if bytesRequiredForHandshake > data.size ⇒ buffer(data)
 
-    case Tcp.Received(data) => {
+    case Tcp.Received(data) ⇒ {
       val client = sender
 
       val bytesStillRequired: Int = bytesRequiredForHandshake
@@ -91,12 +90,12 @@ class ClientConnectionHandler(localPeerId: PeerId,
       }
 
       Handshake.parse(handshakeBytes) match {
-        case Some(Handshake(infoHash, clientPeerId)) if torrentMap.contains(infoHash) => {
+        case Some(Handshake(infoHash, clientPeerId)) if torrentMap.contains(infoHash) ⇒ {
           log.info("replying to successful handshake from {}", clientPeerId)
           replyWithHandshake(infoHash, clientPeerId)
         }
 
-        case _ => {
+        case _ ⇒ {
           log.warning("Closing client due to bad handshake: {}", handshakeBytes.utf8String)
           client ! Tcp.Close
         }
@@ -105,7 +104,7 @@ class ClientConnectionHandler(localPeerId: PeerId,
   }
 
   def established: Receive = {
-    case Tcp.Received(data) => buffer(data)
+    case Tcp.Received(data) ⇒ buffer(data)
   }
 
 }

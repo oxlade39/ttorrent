@@ -1,6 +1,6 @@
 package com.oxlade39.github.storrent
 
-import java.io.{ByteArrayInputStream, File, OutputStream}
+import java.io.{ByteArrayInputStream, File}
 import akka.util.ByteString
 import com.turn.ttorrent.common.ITorrent
 import java.net.URI
@@ -54,9 +54,9 @@ class TorrentFileReader(file: File) {
   val name: String = info("name").getString
 
   val files: List[TorrentFile] = info.get("files").map(_.getList.asScala).map {
-    files =>
+    files ⇒
       files.map {
-        file =>
+        file ⇒
           val path = file.getMap.asScala("path").getList.asScala.map(_.getString).mkString(File.separator)
           val size = file.getMap.asScala("length").getLong
           TorrentFile(path, size)
@@ -64,8 +64,8 @@ class TorrentFileReader(file: File) {
   }.getOrElse(List(TorrentFile(name, info("length").getLong)))
 
   val announceList = main.get("announce-list").map(_.getList.asScala).map {
-    tiers =>
-      tiers.toList.map(_.getList.asScala.toList.map(uri => new URI(uri.getString)))
+    tiers ⇒
+      tiers.toList.map(_.getList.asScala.toList.map(uri ⇒ new URI(uri.getString)))
   }.getOrElse {
     List(List(new URI(main("announce").getString)))
   }
@@ -111,7 +111,7 @@ case class Torrent(name: String,
 
   lazy val getHexInfoHash = infoHash.map("%02X" format _).mkString
 
-  lazy val getAnnounceList = seqAsJavaList(announceList.map(jl => seqAsJavaList(jl)))
+  lazy val getAnnounceList = seqAsJavaList(announceList.map(jl ⇒ seqAsJavaList(jl)))
 
   lazy val getTrackerCount = announceList.flatten.toSet.size
 

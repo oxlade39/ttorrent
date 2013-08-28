@@ -36,7 +36,7 @@ class TrackerHierarchySpec extends Specification {
     "shuffle" in {
 
       // presumably 1 in 100 chance of shuffle producing the same order and failing the test
-      val uris = 1.to(100).map(i => new URI("google%s.com".format(i)))
+      val uris = 1.to(100).map(i ⇒ new URI("google%s.com".format(i)))
 
       val tier = TrackerTier(uris.toList)
 
