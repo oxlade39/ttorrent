@@ -95,6 +95,11 @@ case class Bitfield(bitfield: Seq[Boolean]) extends Message {
   }
 
   def set(index: Int) = copy(bitfield.updated(index, true))
+
+  override def toString = {
+    val size = bitfield.size
+    s"Bitfield($size pieces)"
+  }
 }
 
 object BitOps {

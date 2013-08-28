@@ -3,13 +3,13 @@ package com.oxlade39.github.storrent.peer
 import akka.util.ByteString
 import com.oxlade39.github.storrent.{Handshake, PeerId}
 import akka.actor._
-import akka.io.Tcp
 import scala.Some
+import com.oxlade39.github.storrent.peer.protocol.PeerComms
 
 object Handshaker {
   def props(infoHash: ByteString, localPeerId: PeerId) = Props(new Handshaker(infoHash, localPeerId))
 
-  case class HandshakeWith(connection: ActorRef)
+  case class HandshakeWith(peerComms: ActorRef)
 
   sealed trait Data
   case object Empty extends Data
@@ -38,11 +38,11 @@ class Handshaker(infoHash: ByteString, peerId: PeerId)
   startWith(Unconnected, Empty)
 
   when(Unconnected) {
-    case Event(HandshakeWith(connection), Empty) ⇒ sendHandshake(connection)
+    case Event(HandshakeWith(peerComms), Empty) ⇒ sendHandshake(peerComms)
   }
 
   when(HandshakeSent) {
-    case Event(Tcp.Received(data), r @ Receiving(buffer, from))
+    case Event(PeerComms.Received(data), r @ Receiving(buffer, from))
       if data.size >= r.bytesRequiredForHandshake ⇒ {
 
       val bytesForHandshake = buffer ++ data.take(r.bytesRequiredForHandshake)
@@ -71,7 +71,6 @@ class Handshaker(infoHash: ByteString, peerId: PeerId)
     case _ -> HandshakeFail ⇒ stateData match {
       case Receiving(data, peer) ⇒ {
         log.warning("HandshakeFail with data {} so closing connection", data.utf8String)
-        peer ! Tcp.Close
       }
       case _ ⇒ log.warning("HandshakeFail before started receiving")
     }
@@ -95,8 +94,7 @@ class Handshaker(infoHash: ByteString, peerId: PeerId)
   def sendHandshake(peer: ActorRef) = {
     val handshake: ByteString = Handshake(infoHash, peerId).encoded
     log.debug("sending handshake {} to {}", handshake.utf8String, peer)
-    peer ! Tcp.Register(self)
-    peer ! Tcp.Write(handshake)
+    peer ! PeerComms.Send(handshake)
     log.debug("handshake sent")
     goto(HandshakeSent) using Receiving(ByteString.empty, sender)
   }

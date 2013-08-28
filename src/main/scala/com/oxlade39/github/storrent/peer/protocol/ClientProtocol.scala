@@ -2,6 +2,9 @@ package com.oxlade39.github.storrent.peer.protocol
 
 import akka.actor._
 import com.oxlade39.github.storrent._
+import akka.io.PipelineFactory
+import akka.util.ByteString
+import scala.util.{Success, Failure, Try}
 
 
 object ClientProtocol {
@@ -13,6 +16,7 @@ object ClientProtocol {
   case class HasPeer(peer: ActorRef) extends Data
 
   case class Send(message: Message)
+  case class Received(message: Message)
 
   sealed trait ChokeStatus
   sealed trait InterestStatus
@@ -32,6 +36,8 @@ object ClientProtocol {
     def clientUnInterested = copy(client = client.copy(interestStatus = UnInterested))
     def peerInterested = copy(peer = peer.copy(interestStatus = IsInterested))
     def peerUnInterested = copy(peer = peer.copy(interestStatus = UnInterested))
+
+    override def toString = s"State(client = $client, peer = $peer)"
   }
 }
 
@@ -59,6 +65,15 @@ class ClientProtocol
     case Event(Send(Interested), HasPeer(peer)) => {
       peer ! Interested
       goto(stateName.clientInterested)
+    }
+
+    case Event(Received(Bitfield(pieces)), HasPeer(peer)) => {
+      stay()
+    }
+
+    case Event(Received(UnChoke), HasPeer(peer)) => {
+      log.info("We were UnChoked by our peer")
+      goto(stateName.unchokeClient)
     }
   }
 
@@ -92,5 +107,51 @@ class ClientProtocol
 
   }
 
+  when(State(peer = Status(Choked, UnInterested),
+             client = Status(UnChoked, UnInterested)))(FSM.NullFunction)
+
+  whenUnhandled {
+    case Event(e, s) ⇒
+      log.warning("received unhandled request {} in state {}/{}", e, stateName, s)
+      stay()
+  }
+
   initialize()
+}
+
+class PeerMessageProcessor(clientProtocol: ActorRef,
+                           peerComms: ActorRef)
+  extends Actor
+  with ActorLogging {
+
+  // register as the peer (facade) with the ClientProtocol
+  clientProtocol ! ClientProtocol.SetPeer(self)
+
+  val ctx = new HasByteOrder {
+    def byteOrder = java.nio.ByteOrder.BIG_ENDIAN
+  }
+
+  val pipeline = PipelineFactory.buildWithSinkFunctions(ctx, new PeerMessageStage)(
+    writeToConnection,
+    sendToClientProtocol
+  )
+
+  def writeToConnection(toWrite: Try[ByteString]) {
+    toWrite match {
+      case Failure(ex) => log.error(ex, "Exception in PeerMessageStage pipeline {}", ex.getMessage)
+      case Success(bytes) => peerComms ! PeerComms.Send(bytes)
+    }
+  }
+
+  def sendToClientProtocol(toSend: Try[Message]) {
+    toSend match {
+      case Failure(ex) => log.error(ex, "Exception in PeerMessageStage pipeline {}", ex.getMessage)
+      case Success(message) => clientProtocol ! ClientProtocol.Received(message)
+    }
+  }
+
+  def receive = {
+    case m: Message => pipeline.injectCommand(m)
+    case PeerComms.Received(b) => pipeline.injectEvent(b)
+  }
 }

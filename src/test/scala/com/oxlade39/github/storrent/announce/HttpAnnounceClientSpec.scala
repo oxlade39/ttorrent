@@ -1,15 +1,13 @@
 package com.oxlade39.github.storrent.announce
 
-import org.specs2.mutable.{After, Specification}
-import akka.actor.ActorSystem
+import org.specs2.mutable.Specification
 import java.net.URI
 import com.oxlade39.github.storrent.{PeerId, Torrent}
-import com.oxlade39.github.storrent.test.util.TestFiles
+import com.oxlade39.github.storrent.test.util.{ActorContext, TestFiles}
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import java.util.concurrent.TimeUnit
 import akka.util.Timeout
-import org.specs2.specification.Scope
 
 class HttpAnnounceClientSpec extends Specification with TestFiles {
 
@@ -33,8 +31,4 @@ class HttpAnnounceClientSpec extends Specification with TestFiles {
   }
 }
 
-trait ActorContext extends Scope with After {
-  val sys = ActorSystem("testHttpAnnounceClient")
 
-  def after = sys.shutdown()
-}

@@ -54,7 +54,10 @@ class PeerMessageStage extends SymmetricPipelineStage[HasByteOrder, Message, Byt
     }
 
     override val eventPipeline = { bs: ByteString ⇒
-      val bytes: ByteIterator = bs.iterator
+
+      val data = if (buffer.isEmpty) bs else buffer.get ++ bs
+
+      val bytes: ByteIterator = data.iterator
       val length = bytes.getLongPart(4).toInt
       val messageId = bytes.getLongPart(1).toInt
 
@@ -97,6 +100,10 @@ class PeerMessageStage extends SymmetricPipelineStage[HasByteOrder, Message, Byt
         case 9 ⇒ {
           val port = bytes.getShort
           ctx.singleEvent(Port(port))
+        }
+        case unkwown ⇒ {
+          buffer = Some(data)
+          Nil
         }
       }
     }
