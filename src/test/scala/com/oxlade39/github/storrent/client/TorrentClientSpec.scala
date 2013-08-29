@@ -14,7 +14,7 @@ class TorrentClientSpec extends Specification with TestFiles {
   import ExecutionContext.Implicits.global
 
   // TODO, manual test for now
-  skipAll
+//  skipAll
 
   "TorrentClientSpec" in {
     "Start downloading torrents" in new ActorContext {
@@ -25,7 +25,8 @@ class TorrentClientSpec extends Specification with TestFiles {
       sys.scheduler.scheduleOnce(Duration(5, TimeUnit.MINUTES), torrentClient, TorrentClient.Cancel(torrent))
       sys.scheduler.scheduleOnce(Duration(6, TimeUnit.MINUTES), torrentClient, PoisonPill)
 
-      TimeUnit.MINUTES.sleep(10)
+      readLine("Press enter to shutdown")
+      torrentClient ! PoisonPill
     }
   }
 }

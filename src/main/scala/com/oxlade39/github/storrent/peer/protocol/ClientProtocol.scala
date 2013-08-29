@@ -108,7 +108,12 @@ class ClientProtocol
   }
 
   when(State(peer = Status(Choked, UnInterested),
-             client = Status(UnChoked, UnInterested)))(FSM.NullFunction)
+             client = Status(UnChoked, UnInterested))) {
+    case Event(Received(Choke), HasPeer(peer)) ⇒ {
+      log.info("We were Choked by our peer")
+      goto(stateName.chokeClient)
+    }
+  }
 
   whenUnhandled {
     case Event(e, s) ⇒

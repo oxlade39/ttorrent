@@ -60,7 +60,7 @@ class PeerMessageStage extends SymmetricPipelineStage[HasByteOrder, Message, Byt
       val bytes: ByteIterator = data.iterator
       val length = bytes.getLongPart(4).toInt
 
-      if(bs.size < length) {
+      if(data.size < length) {
         buffer = Some(data)
         Nil
       } else {
