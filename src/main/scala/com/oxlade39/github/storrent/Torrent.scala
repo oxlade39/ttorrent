@@ -26,8 +26,16 @@ object Torrent {
       tfr.creationDate,
       tfr.files,
       tfr.infoHash,
-      tfr.announceList
+      tfr.announceList,
+      tfr.pieceLength,
+      tfr.pieces
     )
+  }
+
+  def hash(bytes: ByteString): ByteString = {
+    val md = MessageDigest.getInstance("SHA-1")
+    md.update(bytes.toArray)
+    ByteString(md.digest())
   }
 
 }
@@ -74,12 +82,10 @@ class TorrentFileReader(file: File) {
   val createdBy = main.get("created by").map(_.getString)
   val creationDate = main.get("creation date").map(_.getLong * 1000)
   val infoHash = hash(BEncoder.bencode(info.asJava).array())
+  val pieceLength = info("piece length").getInt
+  val pieces = info("pieces").getBytes.grouped(20).map(hash => ByteString(hash)).toList
 
-  def hash(byteArray: Array[Byte]) = {
-    val md = MessageDigest.getInstance("SHA-1")
-    md.update(byteArray)
-    ByteString(md.digest())
-  }
+  def hash(byteArray: Array[Byte]) = Torrent.hash(ByteString(byteArray))
 }
 
 case class Torrent(name: String,
@@ -89,6 +95,8 @@ case class Torrent(name: String,
                    files: List[TorrentFile],
                    infoHash: ByteString,
                    announceList: List[List[URI]],
+                   pieceSize: Int,
+                   pieceHashes: List[ByteString],
                    seeder: Boolean = false) extends ITorrent {
 
   import collection.JavaConversions._

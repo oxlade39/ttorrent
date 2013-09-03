@@ -126,7 +126,12 @@ class RichByte(b: Byte) {
   def isSet(bitIndex: Int) = BitOps.isSet(b, bitIndex)
 }
 
-case class Request(index: Int, begin: Int, requestLength: Int) extends Message {
+object Request {
+  // Default block size is 2^14 bytes, or 16kB
+  val DEFAULT_REQUEST_SIZE = 16384
+}
+
+case class Request(index: Int, begin: Int, requestLength: Int = Request.DEFAULT_REQUEST_SIZE) extends Message {
   val length = 13
   val messageId = Some(6)
   lazy val payload = Some(

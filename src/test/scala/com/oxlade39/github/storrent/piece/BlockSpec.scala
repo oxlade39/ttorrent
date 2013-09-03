@@ -3,6 +3,7 @@ package com.oxlade39.github.storrent.piece
 import org.specs2.mutable.Specification
 import scala.collection.SortedSet
 import akka.util.ByteString
+import com.oxlade39.github.storrent.Torrent
 
 /**
  * @author dan
@@ -27,10 +28,10 @@ class BlockSpec extends Specification {
       val hello = ByteString("Hello Mars")
       val blockZero = Block(hello, 0)
       val world = ByteString(" World")
-      val blockOne = Block(world, ByteString("Hello").size)
+      val blockOne = Block(data = world, offset = ByteString("Hello").size)
 
       val piece =
-        Piece(0, 0, expectedData.size, Piece.hash(expectedData)) ++ Set(blockZero, blockOne)
+        Piece(0, expectedData.size, Torrent.hash(expectedData)) ++ Set(blockZero, blockOne)
 
       piece.contiguousStream mustEqual Some(expectedData)
     }

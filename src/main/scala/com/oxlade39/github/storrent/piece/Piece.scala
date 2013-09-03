@@ -1,16 +1,12 @@
 package com.oxlade39.github.storrent.piece
 
 import akka.util.ByteString
-import java.security.MessageDigest
 import scala.collection.SortedSet
 import java.nio.ByteBuffer
+import com.oxlade39.github.storrent.Torrent
 
 object Piece {
-  def hash(bytes: ByteString): ByteString = {
-    val md = MessageDigest.getInstance("SHA-1")
-    md.update(bytes.toArray)
-    ByteString(md.digest())
-  }
+  val ordering = Ordering[Int].on[Piece](_.index)
 }
 
 object Block {
@@ -21,14 +17,15 @@ case class Block(data: ByteString, offset: Int)
 
 case class Piece(
   index: Int,
-  offset: Long,
   size: Int,
   hash: ByteString,
   data: SortedSet[Block] = SortedSet()(Block.orderByOffset)
 ) {
 
-  lazy val totalBlockSize: Int = data.foldLeft(0)(_ + _.data.size)
-  lazy val hasEnoughBytesToBeComplete = totalBlockSize >= size
+  def offset = index * size
+
+  def totalBlockSize: Int = data.foldLeft(0)(_ + _.data.size)
+  def hasEnoughBytesToBeComplete = totalBlockSize >= size
 
   lazy val contiguousStream: Option[ByteString] = {
     val initial: (Option[ByteBuffer], Int) = (Some(ByteBuffer.allocate(size)), 0)
@@ -54,7 +51,7 @@ case class Piece(
     }
   }
 
-  lazy val isValid: Boolean = contiguousStream.exists(s ⇒ Piece.hash(s).equals(hash))
+  lazy val isValid: Boolean = contiguousStream.exists(s ⇒ Torrent.hash(s).equals(hash))
 
   def +(block: Block): Piece = copy(data = data + block)
   def ++(blocks: Set[Block]) = copy(data = data ++ blocks)
