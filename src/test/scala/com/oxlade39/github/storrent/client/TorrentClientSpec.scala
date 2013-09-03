@@ -14,7 +14,7 @@ class TorrentClientSpec extends Specification with TestFiles {
   import ExecutionContext.Implicits.global
 
   // TODO, manual test for now
-//  skipAll
+  skipAll
 
   "TorrentClientSpec" in {
     "Start downloading torrents" in new ActorContext {
