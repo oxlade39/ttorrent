@@ -31,7 +31,7 @@ class BlockSpec extends Specification {
       val blockOne = Block(data = world, offset = ByteString("Hello").size)
 
       val piece =
-        Piece(0, expectedData.size, Torrent.hash(expectedData)) ++ Set(blockZero, blockOne)
+        DownloadPiece(0, expectedData.size, Torrent.hash(expectedData)) ++ Set(blockZero, blockOne)
 
       piece.contiguousStream mustEqual Some(expectedData)
     }

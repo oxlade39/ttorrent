@@ -5,8 +5,8 @@ import scala.collection.SortedSet
 import java.nio.ByteBuffer
 import com.oxlade39.github.storrent.Torrent
 
-object Piece {
-  val ordering = Ordering[Int].on[Piece](_.index)
+object DownloadPiece {
+  val ordering = Ordering[Int].on[DownloadPiece](_.index)
 }
 
 object Block {
@@ -15,7 +15,7 @@ object Block {
 
 case class Block(data: ByteString, offset: Int)
 
-case class Piece(
+case class DownloadPiece(
   index: Int,
   size: Int,
   hash: ByteString,
@@ -53,6 +53,6 @@ case class Piece(
 
   lazy val isValid: Boolean = contiguousStream.exists(s ⇒ Torrent.hash(s).equals(hash))
 
-  def +(block: Block): Piece = copy(data = data + block)
+  def +(block: Block): DownloadPiece = copy(data = data + block)
   def ++(blocks: Set[Block]) = copy(data = data ++ blocks)
 }

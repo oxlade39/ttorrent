@@ -5,9 +5,6 @@ import org.specs2.mock.Mockito
 import akka.actor._
 import akka.testkit.TestProbe
 
-/**
- * @author dan
- */
 class PieceMappingsSpec extends Specification with Mockito {
   "PieceMapping" should {
     "give me the rarest pieces" in {
