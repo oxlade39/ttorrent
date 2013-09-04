@@ -91,6 +91,11 @@ class PieceTracking(torrent: Torrent)
             downloadingPieces += (p -> Downloading(toDownload, downloader))
           }
         }
+
+        case (ClientProtocol.UnChoked, ClientProtocol.Choked) ⇒ {
+//          TODO cancel current download for peer
+        }
+
         case (_, _) ⇒ {}
       }
     }
