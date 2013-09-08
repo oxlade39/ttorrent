@@ -1,20 +1,30 @@
 package com.oxlade39.github.storrent.peer.protocol
 
 import org.specs2.mutable.Specification
-import com.oxlade39.github.storrent.{Message, Bitfield}
+import com.oxlade39.github.storrent.{Piece, Request, Message, Bitfield}
 import java.util
 import com.turn.ttorrent.common.protocol.PeerMessage.BitfieldMessage
 import akka.util.ByteString
 import akka.io.{PipelinePorts, PipelineFactory}
 import org.specs2.mock.Mockito
+import org.specs2.matcher.MustMatchers
 
 class PeerMessageSpec extends Specification with Mockito {
-  val ctx = new HasByteOrder {
-    def byteOrder = java.nio.ByteOrder.BIG_ENDIAN
-  }
 
   "PeerMessage" should {
+    "Round trip Piece message" in {
+      RoundTrip(Piece(645, 0, ByteString("hello world")))
+    }
+
+    "Round trip Request messages" in {
+      RoundTrip(Request(645, 0))
+    }
+    
     "Decode Bitfield bytes" in {
+      val ctx = new HasByteOrder {
+        def byteOrder = java.nio.ByteOrder.BIG_ENDIAN
+      }
+
       val input = Bitfield(Seq(
         true, false, true, false, false, false, false, true,
         true, false, false, false, false, false, false, false,
@@ -33,6 +43,10 @@ class PeerMessageSpec extends Specification with Mockito {
     }
 
     "Decode BitfieldMessage bytes" in {
+      val ctx = new HasByteOrder {
+        def byteOrder = java.nio.ByteOrder.BIG_ENDIAN
+      }
+
       val set: util.BitSet = new util.BitSet(8 * 3)
 
       set.set(0)
@@ -66,5 +80,22 @@ class PeerMessageSpec extends Specification with Mockito {
       bitfield.bitfield(18) mustEqual true
     }
   }
-
 }
+
+object RoundTrip extends MustMatchers {
+  def apply(msg: Message) = {
+    val ctx = new HasByteOrder {
+      def byteOrder = java.nio.ByteOrder.BIG_ENDIAN
+    }
+
+    val PipelinePorts(cmd, evt, mgmt) =
+      PipelineFactory.buildFunctionTriple(ctx, new PeerMessageStage)
+
+    val (inMsgs: Iterable[Message], inBytes: Iterable[ByteString]) = cmd(msg)
+    val (outMsgs: Iterable[Message], outBytes: Iterable[ByteString]) = evt(inBytes.head)
+
+    val outMsg: Message = outMsgs.head
+    outMsg mustEqual msg
+  }
+}
+

@@ -8,7 +8,7 @@ import scala.util.{Success, Failure, Try}
 
 
 object ClientProtocol {
-  def props = Props(new ClientProtocol)
+  def props(pieceTracking: ActorRef) = Props(new ClientProtocol(pieceTracking))
 
   sealed trait Data
   case object Uninitialised extends Data
@@ -41,10 +41,12 @@ object ClientProtocol {
   }
 }
 
-class ClientProtocol
+class ClientProtocol(pieceTracking: ActorRef)
   extends Actor
   with FSM[ClientProtocol.State, ClientProtocol.Data]
   with ActorLogging {
+
+  self ! FSM.SubscribeTransitionCallBack(pieceTracking)
 
   import ClientProtocol._
 
@@ -68,6 +70,12 @@ class ClientProtocol
     }
 
     case Event(Received(Bitfield(pieces)), HasPeer(peer)) ⇒ {
+      pieceTracking ! Bitfield(pieces)
+      stay()
+    }
+
+    case Event(Received(Have(piece)), HasPeer(peer)) ⇒ {
+      pieceTracking ! Have(piece)
       stay()
     }
 
@@ -112,6 +120,52 @@ class ClientProtocol
     case Event(Received(Choke), HasPeer(peer)) ⇒ {
       log.info("We were Choked by our peer")
       goto(stateName.chokeClient)
+    }
+
+    case Event(Send(Interested), HasPeer(peer)) ⇒ {
+      peer ! Interested
+      goto(stateName.clientInterested)
+    }
+
+  }
+
+  when(State(peer = Status(Choked, UnInterested),
+             client = Status(UnChoked, IsInterested))) {
+
+    case Event(Received(Choke), HasPeer(peer)) ⇒ {
+      log.info("We were Choked by our peer")
+      goto(stateName.chokeClient)
+    }
+
+    case Event(Received(Piece(piece, begin, block)), HasPeer(peer)) ⇒ {
+      log.info("received offset {} of piece {}", begin, piece)
+      pieceTracking ! Piece(piece, begin, block)
+      stay()
+    }
+
+    case Event(Send(r: Request), HasPeer(peer)) ⇒ {
+      log.info("requesting offset {} of piece {}", r.begin, r.index)
+      peer ! r
+      stay()
+    }
+  }
+
+  when(State(peer = Status(Choked, UnInterested),
+             client = Status(Choked, IsInterested))) {
+
+    case Event(Send(UnChoke), HasPeer(peer)) ⇒ {
+      peer ! UnChoke
+      goto(stateName.unchokePeer)
+    }
+
+    case Event(Send(NotInterested), HasPeer(peer)) ⇒ {
+      peer ! NotInterested
+      goto(stateName.clientUnInterested)
+    }
+
+    case Event(Received(UnChoke), HasPeer(peer)) ⇒ {
+      log.info("We were UnChoked by our peer")
+      goto(stateName.unchokeClient)
     }
   }
 

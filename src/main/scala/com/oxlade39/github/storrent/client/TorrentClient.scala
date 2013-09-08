@@ -7,6 +7,7 @@ import com.oxlade39.github.storrent.peer.PeerTracking
 import com.oxlade39.github.storrent.announce.TrackerRequest
 import scala.Some
 import com.oxlade39.github.storrent.peer.protocol.PeerComms
+import com.oxlade39.github.storrent.piece.PieceTracking
 
 object TorrentClient {
   def props(peer: Peer) = Props(new TorrentClient(peer))
@@ -17,10 +18,11 @@ object TorrentClient {
   /**
    * TODO either think of a better name or move the context into an actor of it's own right
    */
-  case class TorrentDownloadContext(announcer: ActorRef, peerTracking: ActorRef) {
+  case class TorrentDownloadContext(announcer: ActorRef, peerTracking: ActorRef, pieceTracking: ActorRef) {
     def end(implicit sender: ActorRef = Actor.noSender) = {
       announcer ! Announcer.StopAnnouncing
       peerTracking ! PoisonPill
+      pieceTracking ! PoisonPill
     }
   }
 }
@@ -53,8 +55,11 @@ class TorrentClient(clientPeer: Peer) extends Actor with ActorLogging {
   def newAnnouncer(torrent: Torrent): TorrentDownloadContext = {
     val torrentName = torrent.name
 
+    val pieceTracking =
+      context.actorOf(PieceTracking.props(torrent), s"pieceTracking-$torrentName")
+
     val peerCommsFactory =
-      context.actorOf(PeerComms.factory(torrent, clientPeer), s"peerCommsFactory-$torrentName")
+      context.actorOf(PeerComms.factory(torrent, clientPeer, pieceTracking), s"peerCommsFactory-$torrentName")
 
     val peerTracking =
       context.actorOf(PeerTracking.props(5), s"peerTracking-$torrentName")
@@ -76,7 +81,7 @@ class TorrentClient(clientPeer: Peer) extends Actor with ActorLogging {
                                     event = Some(Started))
     announcer ! Announcer.StartAnnouncing(request, torrent.announceList)
 
-    TorrentDownloadContext(announcer, peerTracking)
+    TorrentDownloadContext(announcer, peerTracking, pieceTracking)
   }
 
 }

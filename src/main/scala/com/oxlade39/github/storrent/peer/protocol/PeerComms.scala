@@ -12,7 +12,9 @@ import com.oxlade39.github.storrent.Peer
  * then attempts handshake,
  * if successful begins the bittorrent client/peer communication phase
  */
-class PeerComms(torrent: Torrent, localPeer: Peer) 
+class PeerComms(torrent: Torrent,
+                localPeer: Peer,
+                pieceTracking: ActorRef)
   extends Actor 
   with ActorLogging {
   
@@ -21,7 +23,7 @@ class PeerComms(torrent: Torrent, localPeer: Peer)
   def awaitingConnection: Receive = {
     case PeerTracking.ConnectedPeer(connectedPeer, connection) ⇒ {
       connection ! Tcp.Register(self)
-      val handshaker = context.actorOf(Handshaker.props(torrent.infoHash, localPeer.id))
+      val handshaker = context.actorOf(Handshaker.props(torrent.infoHash, localPeer.id), "handshaker")
       handshaker ! FSM.SubscribeTransitionCallBack(self)
       handshaker ! Handshaker.HandshakeWith(self)
       log.info("now handshaking")
@@ -33,8 +35,8 @@ class PeerComms(torrent: Torrent, localPeer: Peer)
     forwardTo(peerTcpConnection, handshaker).orElse {
       
     case FSM.Transition(_, oldState, Handshaker.HandshakeSuccess) ⇒ {
-      val clientProc = context.actorOf(ClientProtocol.props)
-      val peerProtocol = context.actorOf(Props(new PeerMessageProcessor(clientProc, self)))
+      val clientProc = context.actorOf(ClientProtocol.props(pieceTracking), "clientProc")
+      val peerProtocol = context.actorOf(Props(new PeerMessageProcessor(clientProc, self)), "peerProtocol")
       log.info("now established")
       context.become(established(peerTcpConnection, peerProtocol))
     }
@@ -62,18 +64,19 @@ object PeerComms {
   /**
    * Creates a new PeerComms Actor on receiving a PeerTracking.ConnectedPeer message
    */
-  def factory(torrent: Torrent, localPeer: Peer) = Props(new Actor with ActorLogging {
+  def factory(torrent: Torrent, localPeer: Peer, pieceTracking: ActorRef) = Props(new Actor with ActorLogging {
     def receive = {
       case connected: PeerTracking.ConnectedPeer ⇒ {
         val address = connected.peer.hostAddress
         val comms =
-          context.actorOf(props(torrent, localPeer), s"peerComms-$address")
+          context.actorOf(props(torrent, localPeer, pieceTracking), s"peerComms-$address")
         comms.forward(connected)
       }
     }
   })
 
-  def props(torrent: Torrent, localPeer: Peer) = Props(new PeerComms(torrent, localPeer))
+  def props(torrent: Torrent, localPeer: Peer, pieceTracking: ActorRef) =
+    Props(new PeerComms(torrent, localPeer, pieceTracking))
 
   case class Send(toSend: ByteString)
   case class Received(bytes: ByteString)

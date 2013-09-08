@@ -7,6 +7,8 @@ import com.oxlade39.github.storrent.piece.PieceTracking.PieceStatus
 import com.oxlade39.github.storrent.Bitfield
 import com.oxlade39.github.storrent.Have
 import com.oxlade39.github.storrent.piece.PieceTracking.Downloading
+import scala.collection.GenTraversable
+import com.oxlade39.github.storrent.peer.protocol.ClientProtocol.ChokeStatus
 
 case class PieceMappings(actorMapping: Map[ActorRef, Set[Int]] = Map.empty) {
 
@@ -38,16 +40,11 @@ object PieceTracking {
   def props(torrent: Torrent) = Props(new PieceTracking(torrent))
 
   sealed trait PieceStatus
-  case class Downloading(piece: DownloadPiece, downloader: ActorRef) extends PieceStatus {
-    def +(newBlock: Block): PieceStatus = {
-      val updatedPiece = piece + newBlock
-      if (updatedPiece.isValid)
-        Downloaded(updatedPiece)
-      else
-        copy(piece = updatedPiece)
-    }
+  case class Downloading(piece: DownloadPiece, downloader: ActorRef, peer: ActorRef) extends PieceStatus {
+    def +(newBlock: Block): PieceStatus =
+      copy(piece = piece + newBlock)
   }
-  case class Downloaded(piece: DownloadPiece) extends PieceStatus
+  case class Downloaded(piece: Int) extends PieceStatus
 
 }
 
@@ -60,6 +57,20 @@ class PieceTracking(torrent: Torrent)
 
   def newPiece(index: Int): DownloadPiece = DownloadPiece(index, torrent.pieceSize, torrent.pieceHashes(index))
 
+  def finishedPieces = downloadingPieces.values.flatMap {
+    case PieceTracking.Downloaded(i) ⇒ Some(i)
+    case _ ⇒ None
+  }.toSet
+
+  def notifyInterested(piecesThisPeerHas: GenTraversable[Int], peer: ActorRef) = {
+    val wantedPieces = piecesThisPeerHas.filterNot(finishedPieces.contains)
+    if (wantedPieces.isEmpty) {
+      peer ! ClientProtocol.Send(NotInterested)
+    } else {
+      peer ! ClientProtocol.Send(Interested)
+    }
+  }
+
   def receive = {
     case Bitfield(haves) ⇒ {
       val peer = sender
@@ -67,16 +78,35 @@ class PieceTracking(torrent: Torrent)
       def add: (PieceMappings, Int) ⇒ PieceMappings =
         (existing, piece) ⇒ existing + (peer -> piece)
 
-      mappings = haves.zipWithIndex.filter(_._1).map(_._2).foldLeft(mappings)(add)
+      val piecesThisPeerHas: Seq[Int] = haves.zipWithIndex.filter(_._1).map(_._2)
+      mappings = piecesThisPeerHas.foldLeft(mappings)(add)
+
+      notifyInterested(piecesThisPeerHas, peer)
     }
 
     case Have(index) ⇒ {
-      mappings + (sender -> index)
+      mappings += (sender -> index)
+      notifyInterested(Seq(index), sender)
+    }
+
+    case p: Piece ⇒ {
+      val index: Int = p.pieceIndex
+      val pieceStatus: Option[PieceStatus] = downloadingPieces.get(index)
+      pieceStatus match {
+        case Some(Downloading(piece, downloader, peer)) ⇒ downloader.forward(p)
+        case other ⇒ log.warning("received piece we didn't request {}", p)
+      }
     }
 
     case FSM.Transition(peer, from: ClientProtocol.State, to: ClientProtocol.State) ⇒ {
-      (from.peer.chokeStatus, to.peer.chokeStatus) match {
-        case (ClientProtocol.Choked, ClientProtocol.UnChoked) ⇒ {
+
+      val BeenUnChoked = ClientProtocol.Choked -> ClientProtocol.UnChoked
+      val BeenChoked = ClientProtocol.UnChoked -> ClientProtocol.Choked
+
+      val previousChokeStatus: ChokeStatus = from.client.chokeStatus
+      val newChokeStatus: ChokeStatus = to.client.chokeStatus
+      (previousChokeStatus, newChokeStatus) match {
+        case BeenUnChoked ⇒ {
           log.info("peer {} has been unchoked", peer)
           val peerPieces: Option[Set[Int]] = mappings.actorMapping.get(peer)
           val pieceToDL = peerPieces.flatMap { p ⇒
@@ -86,17 +116,21 @@ class PieceTracking(torrent: Torrent)
 
           pieceToDL foreach { p ⇒
             val toDownload = newPiece(p)
-            val downloader = context.actorOf(PieceDownloader.props(peer))
+            val downloader = context.actorOf(PieceDownloader.props(peer), s"downloadingPiece-$p")
             downloader ! PieceDownloader.Start(toDownload)
-            downloadingPieces += (p -> Downloading(toDownload, downloader))
+            downloadingPieces += (p -> Downloading(toDownload, downloader, peer))
           }
         }
 
-        case (ClientProtocol.UnChoked, ClientProtocol.Choked) ⇒ {
-//          TODO cancel current download for peer
+        case BeenChoked ⇒ {
+          val download = downloadingPieces.values.find {
+            case PieceTracking.Downloading(_, _, dlPeer) ⇒ dlPeer.equals(peer)
+            case _ ⇒ false
+          }.asInstanceOf[Option[PieceTracking.Downloading]]
+          download.map(_.downloader ! PieceDownloader.Stop)
         }
 
-        case (_, _) ⇒ {}
+        case _ ⇒ {}
       }
     }
 
@@ -115,7 +149,7 @@ object PieceDownloader {
 
   sealed trait Message
   case class Start(p: DownloadPiece) extends Message
-  case class Stop(p: DownloadPiece) extends Message
+  case object Stop extends Message
   case class Done(p: DownloadPiece) extends Message
 
   private[PieceDownloader] case class DownloadingPiece(pendingRequestOffsets: List[Int],
@@ -130,7 +164,7 @@ class PieceDownloader(peer: ActorRef,
   with ActorLogging {
 
   def request(pieceIndex: Int, offset: Int) = {
-    peer ! Request(pieceIndex, offset)
+    peer ! ClientProtocol.Send(Request(pieceIndex, offset))
   }
 
   def receive = {
@@ -149,8 +183,11 @@ class PieceDownloader(peer: ActorRef,
   }
 
   def downloading(dl: PieceDownloader.DownloadingPiece): Receive = {
-    case PieceDownloader.Stop(toStop) if toStop.index.equals(dl.received.index) ⇒ {
-      log.info("stopping download piece {}", toStop.index)
+    case PieceDownloader.Stop ⇒ {
+      log.info("stopping download of piece {}", dl.received.index)
+      dl.pendingRequestOffsets.foreach { offset ⇒
+        peer ! ClientProtocol.Send(Cancel(dl.received.index, requestLength * offset, requestLength))
+      }
       context.stop(self)
     }
 
@@ -162,6 +199,9 @@ class PieceDownloader(peer: ActorRef,
         dl.requester ! PieceDownloader.Done(updatedDownload)
         context.stop(self)
       } else {
+
+        // TODO request next pieces!!!
+
         val lastDownloadOffset = dl.pendingRequestOffsets.head
         val nextRequestedOffset = lastDownloadOffset + requestLength
         val nextRequests = nextRequestedOffset :: dl.pendingRequestOffsets.filterNot(_ == begin)
