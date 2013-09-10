@@ -138,13 +138,13 @@ class ClientProtocol(pieceTracking: ActorRef)
     }
 
     case Event(Received(Piece(piece, begin, block)), HasPeer(peer)) ⇒ {
-      log.info("received offset {} of piece {}", begin, piece)
+      log.debug("received offset {} of piece {}", begin, piece)
       pieceTracking ! Piece(piece, begin, block)
       stay()
     }
 
     case Event(Send(r: Request), HasPeer(peer)) ⇒ {
-      log.info("requesting offset {} of piece {}", r.begin, r.index)
+      log.debug("requesting offset {} of piece {}", r.begin, r.index)
       peer ! r
       stay()
     }
@@ -188,6 +188,7 @@ class PeerMessageProcessor(clientProtocol: ActorRef,
 
   val ctx = new HasByteOrder {
     def byteOrder = java.nio.ByteOrder.BIG_ENDIAN
+    def log = PeerMessageProcessor.this.log
   }
 
   val pipeline = PipelineFactory.buildWithSinkFunctions(ctx, new PeerMessageStage)(

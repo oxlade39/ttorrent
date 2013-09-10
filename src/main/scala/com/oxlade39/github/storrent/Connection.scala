@@ -85,13 +85,13 @@ class ClientConnectionHandler(localPeerId: PeerId,
         val reply = Handshake(infoHash, localPeerId)
         client ! Tcp.Write(reply.encoded)
         context.become(established)
-        log.info("established connection after successful handshake with {}", clientPeerId)
+        log.debug("established connection after successful handshake with {}", clientPeerId)
         remotePeer = Some(Peer(remoteAddress, clientPeerId))
       }
 
       Handshake.parse(handshakeBytes) match {
         case Some(Handshake(infoHash, clientPeerId)) if torrentMap.contains(infoHash) ⇒ {
-          log.info("replying to successful handshake from {}", clientPeerId)
+          log.debug("replying to successful handshake from {}", clientPeerId)
           replyWithHandshake(infoHash, clientPeerId)
         }
 

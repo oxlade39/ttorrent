@@ -50,7 +50,7 @@ class Handshaker(infoHash: ByteString, peerId: PeerId)
 
       Handshake.parse(bytesForHandshake) match {
         case Some(success) ⇒  {
-          log.info("successful handshake {}", success)
+          log.debug("successful handshake {}", success)
           goto(HandshakeSuccess) using r.copy(bytes = leftOver)
         }
         case None ⇒ {
@@ -84,7 +84,7 @@ class Handshaker(infoHash: ByteString, peerId: PeerId)
   }
 
   onTermination {
-    case StopEvent(FSM.Normal, state, data)         ⇒ log.info("normal stop")
+    case StopEvent(FSM.Normal, state, data)         ⇒ log.debug("normal stop")
     case StopEvent(FSM.Shutdown, state, data)       ⇒ log.info("shutdown stop")
     case StopEvent(FSM.Failure(cause), state, data) ⇒ log.warning("failure stop")
   }

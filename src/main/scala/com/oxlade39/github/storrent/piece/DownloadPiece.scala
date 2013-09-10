@@ -13,7 +13,7 @@ object Block {
   val orderByOffset = Ordering[Int].on[Block](block ⇒ block.offset)
 }
 
-case class Block(data: ByteString, offset: Int)
+case class Block(offset: Int, data: ByteString)
 
 case class DownloadPiece(
   index: Int,
@@ -51,7 +51,9 @@ case class DownloadPiece(
     }
   }
 
-  lazy val isValid: Boolean = contiguousStream.exists(s ⇒ Torrent.hash(s).equals(hash))
+  lazy val actualHash = contiguousStream.map(s ⇒ Torrent.hash(s))
+
+  lazy val isValid: Boolean = actualHash.exists(_.equals(hash))
 
   def +(block: Block): DownloadPiece = copy(data = data + block)
   def ++(blocks: Set[Block]) = copy(data = data ++ blocks)

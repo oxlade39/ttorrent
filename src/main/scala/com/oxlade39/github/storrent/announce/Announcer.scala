@@ -28,11 +28,11 @@ class Announcer(peerTracking: ActorRef) extends Actor with ActorLogging {
 
   def announcing(multiTrackerExtension: ActorRef, request: TrackerRequest): Receive = {
     case response: NormalTrackerResponse ⇒ {
-      log.info("response {}", response)
+      log.debug("response {}", response)
 
       peerTracking ! PeerTracking.PeersAnnounced(response.peers)
 
-      log.info("scheduling another request in {} seconds", response.clientRequestInterval)
+      log.debug("scheduling another request in {} seconds", response.clientRequestInterval)
       context.system.scheduler.scheduleOnce(response.clientRequestInterval seconds,
                                             multiTrackerExtension,
                                             request.copy(trackerId = response.trackerId,

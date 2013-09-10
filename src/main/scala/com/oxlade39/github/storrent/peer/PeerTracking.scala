@@ -66,7 +66,7 @@ class PeerTracking(maxConnections: Int)
       val peerConnection = sender
       log.info("{} is now connected on {} by {}", remoteAddress, localAddress, peerConnection)
       awaitingConnection.find(_.peer.address.equals(remoteAddress)) map { trackedPeer ⇒
-        log.info("{} mapped to {}", peerConnection, trackedPeer)
+        log.debug("{} mapped to {}", peerConnection, trackedPeer)
         trackedPeers -= trackedPeer.peer
         val connectedPeer = ConnectedPeer(trackedPeer.peer, peerConnection)
         trackedPeers += trackedPeer.peer -> connectedPeer
@@ -86,13 +86,13 @@ class PeerTracking(maxConnections: Int)
       io.IO(Tcp) ! Tcp.Connect(peer.address)
       trackedPeers += peer -> AwaitingConnectionPeer(peer)
     } else {
-      log.info("too many connections so adding new peer {} to backlog", peer)
+      log.debug("too many connections so adding new peer {} to backlog", peer)
       trackedPeers += peer -> UnconnectedPeer(peer)
     }
   }
 
   def notifyListeners(peer: ConnectedPeer) {
-    log.info("sending {} to listeners {}", peer, listeners)
+    log.debug("sending {} to listeners {}", peer, listeners)
     listeners.foreach(_.tell(peer, self))
   }
 }

@@ -63,7 +63,7 @@ object HttpAnnounceClient {
 
           val responseOption = NormalTrackerResponse.parse(bs).orElse(FailureTrackerResponse.parse(bs))
 
-          log.info("tracker responded with {}", responseOption)
+          log.debug("tracker responded with {}", responseOption)
 
           responseOption map (response ⇒ respondTo ! ChildResponse(response, originalSender))
           

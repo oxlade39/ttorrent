@@ -26,7 +26,7 @@ class PeerComms(torrent: Torrent,
       val handshaker = context.actorOf(Handshaker.props(torrent.infoHash, localPeer.id), "handshaker")
       handshaker ! FSM.SubscribeTransitionCallBack(self)
       handshaker ! Handshaker.HandshakeWith(self)
-      log.info("now handshaking")
+      log.debug("now handshaking")
       context.become(handshaking(connection, handshaker))
     }
   }
@@ -37,7 +37,7 @@ class PeerComms(torrent: Torrent,
     case FSM.Transition(_, oldState, Handshaker.HandshakeSuccess) ⇒ {
       val clientProc = context.actorOf(ClientProtocol.props(pieceTracking), "clientProc")
       val peerProtocol = context.actorOf(Props(new PeerMessageProcessor(clientProc, self)), "peerProtocol")
-      log.info("now established")
+      log.debug("now established")
       context.become(established(peerTcpConnection, peerProtocol))
     }
 

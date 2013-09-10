@@ -13,27 +13,28 @@ class BlockSpec extends Specification {
     "be sortable" in {
       val blockOneBytes: ByteString = ByteString("one")
       val blockTwoBytes: ByteString = ByteString("two")
-      val blockOne: Block = Block(blockOneBytes, 0)
-      val blockTwo: Block = Block(blockTwoBytes, blockOneBytes.size)
+      val blockOne: Block = Block(0, blockOneBytes)
+      val blockTwo: Block = Block(blockOneBytes.size, blockTwoBytes)
 
       SortedSet(blockOne, blockTwo)(Block.orderByOffset).head mustEqual blockOne
       SortedSet(blockTwo, blockOne)(Block.orderByOffset).head mustEqual blockOne
     }
   }
 
-  "Piece" should {
+  "DownloadPiece" should {
     "be a collection of overlapping blocks" in {
       val expectedData = ByteString("Hello World")
 
       val hello = ByteString("Hello Mars")
-      val blockZero = Block(hello, 0)
+      val blockZero = Block(0, hello)
       val world = ByteString(" World")
       val blockOne = Block(data = world, offset = ByteString("Hello").size)
 
       val piece =
-        DownloadPiece(0, expectedData.size, Torrent.hash(expectedData)) ++ Set(blockZero, blockOne)
+        DownloadPiece(0, expectedData.size, Torrent.hash(expectedData)) + blockZero + blockOne
 
-      piece.contiguousStream mustEqual Some(expectedData)
+      val stream: piece.contiguousStream.type = piece.contiguousStream
+      stream mustEqual Some(expectedData)
     }
   }
 }

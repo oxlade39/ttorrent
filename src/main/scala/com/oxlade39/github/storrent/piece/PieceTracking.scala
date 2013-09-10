@@ -107,19 +107,8 @@ class PieceTracking(torrent: Torrent)
       val newChokeStatus: ChokeStatus = to.client.chokeStatus
       (previousChokeStatus, newChokeStatus) match {
         case BeenUnChoked ⇒ {
-          log.info("peer {} has been unchoked", peer)
-          val peerPieces: Option[Set[Int]] = mappings.actorMapping.get(peer)
-          val pieceToDL = peerPieces.flatMap { p ⇒
-            val notAlreadyDownloading = p.filterNot(downloadingPieces.contains)
-            mappings.rarestPieces.find(notAlreadyDownloading.contains)
-          }
-
-          pieceToDL foreach { p ⇒
-            val toDownload = newPiece(p)
-            val downloader = context.actorOf(PieceDownloader.props(peer), s"downloadingPiece-$p")
-            downloader ! PieceDownloader.Start(toDownload)
-            downloadingPieces += (p -> Downloading(toDownload, downloader, peer))
-          }
+          log.debug("peer {} has been unchoked", peer)
+          downloadNextRarestPiece(peer)
         }
 
         case BeenChoked ⇒ {
@@ -136,16 +125,36 @@ class PieceTracking(torrent: Torrent)
 
     case PieceDownloader.Done(p) ⇒ {
       log.info("Received notification of completed piece {}", p)
-      // TODO handle
+      // TODO save them
+      downloadingPieces += (p.index -> PieceTracking.Downloaded(p.index))
+      log.info("now finished pieces {}", finishedPieces.mkString(","))
+      downloadNextRarestPiece(sender)
     }
 
+  }
+
+  def downloadNextRarestPiece(peer: ActorRef) {
+    val peerPieces: Option[Set[Int]] = mappings.actorMapping.get(peer)
+    val pieceToDL = peerPieces.flatMap {
+      p ⇒
+        val notAlreadyDownloading = p.filterNot(downloadingPieces.contains)
+        mappings.rarestPieces.find(notAlreadyDownloading.contains)
+    }
+
+    pieceToDL foreach {
+      p ⇒
+        val toDownload = newPiece(p)
+        val downloader = context.actorOf(PieceDownloader.props(peer, torrent.pieceSize), s"downloadingPiece-$p")
+        downloader ! PieceDownloader.Start(toDownload)
+        downloadingPieces += (p -> Downloading(toDownload, downloader, peer))
+    }
   }
 }
 
 object PieceDownloader {
   val MAX_PIPELINED_REQUESTS = 5
 
-  def props(peer: ActorRef) = Props(new PieceDownloader(peer))
+  def props(peer: ActorRef, pieceSize: Int) = Props(new PieceDownloader(peer, pieceSize))
 
   sealed trait Message
   case class Start(p: DownloadPiece) extends Message
@@ -158,13 +167,14 @@ object PieceDownloader {
 }
 
 class PieceDownloader(peer: ActorRef,
+                      pieceSize: Int,
                       maxPendingRequests: Int = PieceDownloader.MAX_PIPELINED_REQUESTS,
                       requestLength: Int = Request.DEFAULT_REQUEST_SIZE)
   extends Actor
   with ActorLogging {
 
-  def request(pieceIndex: Int, offset: Int) = {
-    peer ! ClientProtocol.Send(Request(pieceIndex, offset))
+  def request(pieceIndex: Int, offset: Int, length: Int =  requestLength) = {
+    peer ! ClientProtocol.Send(Request(pieceIndex, offset, length))
   }
 
   def receive = {
@@ -184,7 +194,7 @@ class PieceDownloader(peer: ActorRef,
 
   def downloading(dl: PieceDownloader.DownloadingPiece): Receive = {
     case PieceDownloader.Stop ⇒ {
-      log.info("stopping download of piece {}", dl.received.index)
+      log.debug("stopping download of piece {}", dl.received.index)
       dl.pendingRequestOffsets.foreach { offset ⇒
         peer ! ClientProtocol.Send(Cancel(dl.received.index, requestLength * offset, requestLength))
       }
@@ -192,23 +202,30 @@ class PieceDownloader(peer: ActorRef,
     }
 
     case Piece(index, begin, block) ⇒ {
-      log.info("received offset {} of piece {}", begin, index)
-      val updatedDownload = dl.received + Block(block, begin)
+      log.debug("received offset {} of piece {}", begin, index)
+      val updatedDownload = dl.received + Block(begin, block)
       if (updatedDownload.isValid) {
         log.info("finished download piece {} telling {}", index, dl.requester)
-        dl.requester ! PieceDownloader.Done(updatedDownload)
+        dl.requester.tell(PieceDownloader.Done(updatedDownload), sender)
         context.stop(self)
       } else {
-
-        // TODO request next pieces!!!
-
         val lastDownloadOffset = dl.pendingRequestOffsets.head
+        val bytesRemaining = pieceSize - lastDownloadOffset
         val nextRequestedOffset = lastDownloadOffset + requestLength
-        val nextRequests = nextRequestedOffset :: dl.pendingRequestOffsets.filterNot(_ == begin)
-        log.info("received block for piece {} at offset {}", index, begin)
-        val updated = dl.copy(pendingRequestOffsets = nextRequests, received = updatedDownload)
-        context.become(behavior = downloading(updated),
-                       discardOld = true)
+
+        val length = Math.min(requestLength, bytesRemaining)
+
+        if(!updatedDownload.hasEnoughBytesToBeComplete) {
+          log.debug("sending next request for offset {}", nextRequestedOffset)
+          request(dl.received.index, nextRequestedOffset, length)
+          val nextRequests = nextRequestedOffset :: dl.pendingRequestOffsets.filterNot(_ == begin)
+          val updated = dl.copy(pendingRequestOffsets = nextRequests, received = updatedDownload)
+          context.become(behavior = downloading(updated),
+                         discardOld = true)
+        } else {
+          log.warning("reached end of requests but isn't valid")
+        }
+
       }
     }
   }

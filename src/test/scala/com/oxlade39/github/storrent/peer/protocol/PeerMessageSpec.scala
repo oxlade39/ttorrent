@@ -3,26 +3,33 @@ package com.oxlade39.github.storrent.peer.protocol
 import org.specs2.mutable.Specification
 import com.oxlade39.github.storrent.{Piece, Request, Message, Bitfield}
 import java.util
-import com.turn.ttorrent.common.protocol.PeerMessage.BitfieldMessage
+import com.turn.ttorrent.common.protocol.PeerMessage.{RequestMessage, BitfieldMessage}
 import akka.util.ByteString
 import akka.io.{PipelinePorts, PipelineFactory}
 import org.specs2.mock.Mockito
 import org.specs2.matcher.MustMatchers
+import akka.event.NoLogging
 
 class PeerMessageSpec extends Specification with Mockito {
 
   "PeerMessage" should {
+    "Request should be same as legacy message" in {
+      val crafted = RequestMessage.craft(645, 56353, 45453)
+      crafted.getData mustEqual Request(645, 56353, 45453).encode.toByteBuffer
+    }
+
     "Round trip Piece message" in {
-      RoundTrip(Piece(645, 0, ByteString("hello world")))
+      RoundTrip(Piece(645, 56353, ByteString("hello world")))
     }
 
     "Round trip Request messages" in {
-      RoundTrip(Request(645, 0))
+      RoundTrip(Request(645, 4545))
     }
     
     "Decode Bitfield bytes" in {
       val ctx = new HasByteOrder {
         def byteOrder = java.nio.ByteOrder.BIG_ENDIAN
+        def log = NoLogging
       }
 
       val input = Bitfield(Seq(
@@ -45,6 +52,7 @@ class PeerMessageSpec extends Specification with Mockito {
     "Decode BitfieldMessage bytes" in {
       val ctx = new HasByteOrder {
         def byteOrder = java.nio.ByteOrder.BIG_ENDIAN
+        def log = NoLogging
       }
 
       val set: util.BitSet = new util.BitSet(8 * 3)
@@ -86,6 +94,7 @@ object RoundTrip extends MustMatchers {
   def apply(msg: Message) = {
     val ctx = new HasByteOrder {
       def byteOrder = java.nio.ByteOrder.BIG_ENDIAN
+      def log = NoLogging
     }
 
     val PipelinePorts(cmd, evt, mgmt) =
